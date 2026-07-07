@@ -411,17 +411,7 @@ export default function AdminDashboard({
             </button>
           </form>
 
-          {/* List of admin credentials for easy reference */}
-          <div className="mt-6 p-4 bg-surface-container-low rounded-xl border border-outline-variant/40 text-xs font-sans text-on-surface-variant/80 text-left animate-fade-in">
-            <p className="font-bold text-primary mb-2 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
-              <span>บัญชีผู้ดูแลระบบที่พร้อมใช้งาน:</span>
-            </p>
-            <ul className="space-y-1.5 list-disc list-inside">
-              <li><strong className="text-on-surface">saran</strong> / saran12345 (แอดมิน ศรัณย์)</li>
-              <li><strong className="text-on-surface">kla</strong> / kla12345 (แอดมิน กล้า)</li>
-            </ul>
-          </div>
+
 
           <p className="text-[10px] text-outline mt-8 font-medium">
             ระบบความปลอดภัยควบคุมภายในโดย ชมรมศิษย์วัดตากฟ้า
