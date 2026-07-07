@@ -40,6 +40,7 @@ import {
 } from 'recharts';
 import { AlumniProfile, ActivityLog } from '../types';
 import { ENTRY_YEARS, getAvailableGrades, calculateGeneration, getEntryGrade, THAI_PROVINCES } from '../data/mockAlumni';
+import { compressImage } from '../lib/imageUtils';
 
 // Helper to categorize alumni occupations into groups for the bar chart
 const getOccupationGroup = (occupation: string): string => {
@@ -1104,8 +1105,15 @@ export default function AdminDashboard({
                           const file = e.target.files?.[0];
                           if (file) {
                             const reader = new FileReader();
-                            reader.onload = () => {
-                              setEditingAlumnus({ ...editingAlumnus, imageUrl: reader.result as string });
+                            reader.onload = async () => {
+                              const rawBase64 = reader.result as string;
+                              try {
+                                const compressed = await compressImage(rawBase64);
+                                setEditingAlumnus({ ...editingAlumnus, imageUrl: compressed });
+                              } catch (err) {
+                                console.error("Image compression error:", err);
+                                setEditingAlumnus({ ...editingAlumnus, imageUrl: rawBase64 });
+                              }
                             };
                             reader.readAsDataURL(file);
                           }

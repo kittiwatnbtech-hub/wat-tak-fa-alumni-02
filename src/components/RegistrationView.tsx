@@ -17,9 +17,10 @@ import {
 } from 'lucide-react';
 import { AlumniProfile } from '../types';
 import { THAI_PROVINCES, ENTRY_YEARS, getAvailableGrades, calculateGeneration } from '../data/mockAlumni';
+import { compressImage } from '../lib/imageUtils';
 
 interface RegistrationViewProps {
-  onRegister: (newAlumnus: Omit<AlumniProfile, 'id' | 'status' | 'createdAt'>) => void;
+  onRegister: (newAlumnus: Omit<AlumniProfile, 'id' | 'status' | 'createdAt'>) => Promise<void> | void;
 }
 
 export default function RegistrationView({ onRegister }: RegistrationViewProps) {
@@ -53,15 +54,22 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result as string);
+      reader.onload = async () => {
+        const rawBase64 = reader.result as string;
+        try {
+          const compressed = await compressImage(rawBase64);
+          setImagePreview(compressed);
+        } catch (err) {
+          console.error("Image compression error:", err);
+          setImagePreview(rawBase64);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
   // Submit Handler
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -81,9 +89,9 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
       ? `${occupationGroup} (${occupationDetail.trim()})` 
       : occupationGroup;
 
-    // Simulate Network Request
-    setTimeout(() => {
-      onRegister({
+    try {
+      // Call onRegister and await its execution
+      await onRegister({
         fullname,
         nickname,
         phone,
@@ -101,7 +109,26 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
 
       // Clear Form
       handleReset();
-    }, 1500);
+    } catch (err: any) {
+      console.error("Registration failed:", err);
+      let readableError = 'เกิดข้อผิดพลาดในการลงทะเบียน กรุณาตรวจสอบอินเทอร์เน็ตหรือติดต่อผู้ดูแลระบบ';
+      try {
+        if (err && err.message) {
+          const parsed = JSON.parse(err.message);
+          if (parsed && parsed.error) {
+            readableError = `ลงทะเบียนไม่สำเร็จ: ${parsed.error}`;
+          } else {
+            readableError = `ลงทะเบียนไม่สำเร็จ: ${err.message}`;
+          }
+        }
+      } catch (parseErr) {
+        if (err && err.message) {
+          readableError = `เกิดข้อผิดพลาด: ${err.message}`;
+        }
+      }
+      setErrorMessage(readableError);
+      setIsSubmitting(false);
+    }
   };
 
   // Reset Handler
