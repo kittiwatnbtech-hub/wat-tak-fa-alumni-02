@@ -23,7 +23,8 @@ import {
   Mail,
   UserCheck,
   Lock,
-  LogIn
+  LogIn,
+  Camera
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -93,6 +94,7 @@ export default function AdminDashboard({
 
   // Edit Alumnus state
   const [editingAlumnus, setEditingAlumnus] = useState<AlumniProfile | null>(null);
+  const editFileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Custom confirmation modal for delete
   const [deleteConfirmAlumnus, setDeleteConfirmAlumnus] = useState<AlumniProfile | null>(null);
@@ -1062,6 +1064,54 @@ export default function AdminDashboard({
 
             <form onSubmit={handleEditSubmit} className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-4">
+                {/* Profile Image Edit */}
+                <div className="col-span-2 flex flex-col items-center gap-2 pb-2" id="edit-profile-image-section">
+                  <div 
+                    className="relative group cursor-pointer" 
+                    onClick={() => editFileInputRef.current?.click()}
+                    title="คลิกเพื่อเปลี่ยนรูปภาพ"
+                  >
+                    <div className="w-24 h-24 rounded-full bg-surface-container-high border-2 border-dashed border-outline hover:border-primary flex items-center justify-center overflow-hidden transition-standard shadow-sm">
+                      {editingAlumnus.imageUrl ? (
+                        <img 
+                          src={editingAlumnus.imageUrl} 
+                          alt="Profile Preview" 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <img 
+                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(editingAlumnus.fullname)}`}
+                          alt="Generated Avatar" 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
+                    </div>
+                    <div className="absolute bottom-0 right-0 bg-primary text-on-primary p-2 rounded-full shadow-lg active:scale-90 transition-standard">
+                      <Camera className="w-3.5 h-3.5" />
+                    </div>
+                    <input 
+                      type="file" 
+                      ref={editFileInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            setEditingAlumnus({ ...editingAlumnus, imageUrl: reader.result as string });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      id="edit-profile-picture-input"
+                    />
+                  </div>
+                  <span className="text-[11px] text-outline font-semibold font-sans">คลิกที่รูปภาพเพื่อแก้ไขรูปภาพโปรไฟล์</span>
+                </div>
+
                 {/* Full name */}
                 <div className="col-span-2 flex flex-col gap-1.5">
                   <label className="text-xs font-bold text-outline">ชื่อ-นามสกุล</label>
