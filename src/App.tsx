@@ -24,7 +24,7 @@ import RegistrationView from './components/RegistrationView';
 import AdminDashboard from './components/AdminDashboard';
 import { AlumniProfile, ActivityLog } from './types';
 import { INITIAL_ALUMNI, INITIAL_LOGS } from './data/mockAlumni';
-import { db, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, getDoc, handleFirestoreError, OperationType } from './lib/firebase';
+import { db, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, getDoc, getDocs, handleFirestoreError, OperationType } from './lib/firebase';
 
 export default function App() {
   // Tab control state
@@ -46,7 +46,11 @@ export default function App() {
           return;
         }
 
-        if (!statusDoc.exists() || !statusDoc.data()?.seeded) {
+        const statusData = statusDoc.exists() ? statusDoc.data() : null;
+        const isSeeded = statusData?.seeded;
+        const isLogsUpdated = statusData?.logs_v2_updated;
+
+        if (!isSeeded) {
           console.log("Seeding INITIAL_ALUMNI and INITIAL_LOGS to Firestore...");
           // Seed to Firestore
           for (const item of INITIAL_ALUMNI) {
@@ -63,9 +67,25 @@ export default function App() {
               handleFirestoreError(error, OperationType.CREATE, `logs/${log.id}`);
             }
           }
-          // Mark as seeded
+          // Mark as seeded and logs v2 updated
           try {
-            await setDoc(doc(db, 'system', 'status'), { seeded: true });
+            await setDoc(doc(db, 'system', 'status'), { seeded: true, logs_v2_updated: true });
+          } catch (error) {
+            handleFirestoreError(error, OperationType.CREATE, 'system/status');
+          }
+        } else if (!isLogsUpdated) {
+          console.log("Updating logs to v2 in Firestore...");
+          // Seed updated INITIAL_LOGS
+          for (const log of INITIAL_LOGS) {
+            try {
+              await setDoc(doc(db, 'logs', log.id), log);
+            } catch (error) {
+              handleFirestoreError(error, OperationType.CREATE, `logs/${log.id}`);
+            }
+          }
+          // Update status with logs_v2_updated
+          try {
+            await setDoc(doc(db, 'system', 'status'), { seeded: true, logs_v2_updated: true });
           } catch (error) {
             handleFirestoreError(error, OperationType.CREATE, 'system/status');
           }
@@ -119,11 +139,11 @@ export default function App() {
   const [rsvpConfirmMessage, setRsvpConfirmMessage] = useState<string | null>(null);
 
   // Helper to add a log entry dynamically
-  const addLog = async (action: string, type: 'approve' | 'export' | 'register' | 'delete' | 'edit') => {
+  const addLog = async (action: string, type: 'approve' | 'export' | 'register' | 'delete' | 'edit', customAdminName?: string) => {
     const logId = `log-${Date.now()}`;
     const newLog: ActivityLog = {
       id: logId,
-      adminName: 'แอดมิน วิชัย',
+      adminName: customAdminName || localStorage.getItem('admin_name') || 'แอดมิน วิชัย',
       action,
       timestamp: 'เมื่อสักครู่',
       type
@@ -191,6 +211,18 @@ export default function App() {
     }
   };
 
+  // Admin clears all logs
+  const handleClearLogs = async () => {
+    try {
+      const logsCol = collection(db, 'logs');
+      const qSnapshot = await getDocs(logsCol);
+      const batchPromises = qSnapshot.docs.map((d) => deleteDoc(d.ref));
+      await Promise.all(batchPromises);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, 'logs');
+    }
+  };
+
   // Count pending records for badges
   const pendingCount = alumni.filter(item => item.status === 'pending').length;
 
@@ -255,6 +287,7 @@ export default function App() {
             onDelete={handleDeleteAlumnus} 
             onEdit={handleEditAlumnus}
             addLog={addLog}
+            onClearLogs={handleClearLogs}
           />
         )}
       </main>

@@ -218,28 +218,28 @@ export const INITIAL_ALUMNI: AlumniProfile[] = [
 
 export const INITIAL_LOGS: ActivityLog[] = [
   {
-    id: 'log-1',
+    id: 'log-4',
     adminName: 'แอดมิน วิชัย',
-    action: 'อนุมัติการลงทะเบียนใหม่ของ คุณมานะ',
+    action: 'อนุมัติการลงทะเบียนใหม่ของ คุณสรวิชญ์ นามสมมติ (รุ่น 28)',
     timestamp: '2 นาทีที่แล้ว',
     type: 'approve'
   },
   {
-    id: 'log-2',
+    id: 'log-3',
     adminName: 'แอดมิน วิชัย',
-    action: 'มีการส่งออกข้อมูล Excel ไฟล์ Alumni_List_2024.xlsx',
+    action: 'มีการส่งออกข้อมูล Excel ไฟล์ Alumni_List_2026.csv',
     timestamp: '15 นาทีที่แล้ว',
     type: 'export'
   },
   {
-    id: 'log-3',
+    id: 'log-2',
     adminName: 'แอดมิน วิชัย',
-    action: 'อัปเดตข้อมูลประวัติศิษย์เก่า คุณสมชาย รักธรรม',
+    action: 'อัปเดตข้อมูลประวัติศิษย์เก่า คุณสมชาย รักธรรม (รุ่น 45)',
     timestamp: '1 ชั่วโมงที่แล้ว',
     type: 'edit'
   },
   {
-    id: 'log-4',
+    id: 'log-1',
     adminName: 'ระบบอัตโนมัติ',
     action: 'มีผู้ส่งใบสมัครลงทะเบียนใหม่: คุณวนิดา ปัญญาดี (รุ่น 48)',
     timestamp: '2 ชั่วโมงที่แล้ว',

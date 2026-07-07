@@ -73,6 +73,11 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
     e.preventDefault();
     setErrorMessage(null);
 
+    if (!imagePreview) {
+      setErrorMessage('กรุณาอัปโหลดรูปภาพโปรไฟล์ของคุณ (รูปภาพตัวจริง เห็นใบหน้าชัด)');
+      return;
+    }
+
     if (!agreement) {
       setErrorMessage('กรุณายินยอมเงื่อนไขนโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA) เพื่อลงทะเบียน');
       return;
@@ -204,7 +209,7 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
             />
           </div>
           <p className="font-sans text-xs mt-3 text-on-surface-variant font-medium select-none">
-            รูปภาพโปรโฟล์ (รูปภาพตัวจริง เห็นใบหน้าชัด )
+            รูปภาพโปรไฟล์ (รูปภาพตัวจริง เห็นใบหน้าชัด) <span className="text-error">*</span>
           </p>
         </div>
 

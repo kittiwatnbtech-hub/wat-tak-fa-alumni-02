@@ -73,7 +73,8 @@ interface AdminDashboardProps {
   onApprove: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (updatedAlumnus: AlumniProfile) => void;
-  addLog: (action: string, type: 'approve' | 'export' | 'register' | 'delete' | 'edit') => void;
+  addLog: (action: string, type: 'approve' | 'export' | 'register' | 'delete' | 'edit', adminName?: string) => void;
+  onClearLogs?: () => Promise<void> | void;
 }
 
 export default function AdminDashboard({ 
@@ -82,7 +83,8 @@ export default function AdminDashboard({
   onApprove, 
   onDelete, 
   onEdit,
-  addLog
+  addLog,
+  onClearLogs
 }: AdminDashboardProps) {
   // Local admin UI states
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,6 +102,9 @@ export default function AdminDashboard({
   // Custom confirmation modal for delete
   const [deleteConfirmAlumnus, setDeleteConfirmAlumnus] = useState<AlumniProfile | null>(null);
 
+  // Custom confirmation state for clearing logs
+  const [showClearLogsConfirm, setShowClearLogsConfirm] = useState(false);
+
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -108,15 +113,26 @@ export default function AdminDashboard({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [currentAdminName, setCurrentAdminName] = useState(() => localStorage.getItem('admin_name') || 'แอดมิน วิชัย');
 
   // Handle Login submission
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim() === 'admin' && password === 'admin1234') {
+    
+    // Available admin accounts (2 accounts requested by user)
+    const adminAccounts = [
+      { u: 'saran', p: 'saran12345', name: 'แอดมิน ศรัณย์' },
+      { u: 'kla', p: 'kla12345', name: 'แอดมิน กล้า' }
+    ];
+
+    const match = adminAccounts.find(acc => acc.u === username.trim() && acc.p === password);
+    if (match) {
       localStorage.setItem('admin_authorized', 'true');
+      localStorage.setItem('admin_name', match.name);
       setIsAuthorized(true);
+      setCurrentAdminName(match.name);
       setLoginError('');
-      triggerToast('ยินดีต้อนรับคุณแอดมิน เข้าสู่ระบบสำเร็จแล้ว!');
+      triggerToast(`ยินดีต้อนรับ ${match.name} เข้าสู่ระบบสำเร็จแล้ว!`);
     } else {
       setLoginError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
     }
@@ -124,6 +140,7 @@ export default function AdminDashboard({
 
   const handleLogout = () => {
     localStorage.removeItem('admin_authorized');
+    localStorage.removeItem('admin_name');
     setIsAuthorized(false);
     setUsername('');
     setPassword('');
@@ -254,21 +271,21 @@ export default function AdminDashboard({
   // Handle Approve
   const handleApproveAction = (id: string, name: string) => {
     onApprove(id);
-    addLog(`อนุมัติการลงทะเบียนใหม่ของ คุณ${name}`, 'approve');
+    addLog(`อนุมัติการลงทะเบียนใหม่ของ คุณ${name}`, 'approve', currentAdminName);
     triggerToast(`อนุมัติการลงทะเบียนของคุณ ${name} สำเร็จแล้ว`);
   };
 
   // Handle Delete
   const handleDeleteAction = (alumnus: AlumniProfile) => {
     onDelete(alumnus.id);
-    addLog(`ลบโปรไฟล์ศิษย์เก่า คุณ${alumnus.fullname}`, 'delete');
+    addLog(`ลบโปรไฟล์ศิษย์เก่า คุณ${alumnus.fullname}`, 'delete', currentAdminName);
     triggerToast(`ลบโปรไฟล์คุณ ${alumnus.fullname} สำเร็จแล้ว`);
     setDeleteConfirmAlumnus(null);
   };
 
   // Handle Export to Excel (Generates and downloads a real compliant CSV)
   const handleExportCSV = () => {
-    addLog('มีการส่งออกข้อมูล Excel ไฟล์ Alumni_List_2026.csv', 'export');
+    addLog('มีการส่งออกข้อมูล Excel ไฟล์ Alumni_List_2026.csv', 'export', currentAdminName);
     
     // Construct CSV Header and Rows
     const headers = ['ชื่อ-นามสกุล', 'ชื่อเล่น', 'เบอร์โทรศัพท์', 'Line ID', 'รุ่นที่', 'ปีการศึกษา', 'อาชีพ', 'จังหวัด', 'สถานะ'];
@@ -308,10 +325,25 @@ export default function AdminDashboard({
     e.preventDefault();
     if (editingAlumnus) {
       onEdit(editingAlumnus);
-      addLog(`แก้ไขข้อมูลประวัติศิษย์เก่า คุณ${editingAlumnus.fullname}`, 'edit');
+      addLog(`แก้ไขข้อมูลประวัติศิษย์เก่า คุณ${editingAlumnus.fullname}`, 'edit', currentAdminName);
       triggerToast(`แก้ไขข้อมูลของ คุณ${editingAlumnus.fullname} สำเร็จแล้ว`);
       setEditingAlumnus(null);
     }
+  };
+
+  // Handle Clear Logs action
+  const handleClearLogsAction = async () => {
+    if (onClearLogs) {
+      try {
+        await onClearLogs();
+        addLog('ล้างประวัติการทำงาน (System Audit Logs) ทั้งหมดเพื่อเริ่มต้นระบบใหม่', 'delete', currentAdminName);
+        triggerToast('ล้างประวัติการทำงานทั้งหมดสำเร็จแล้ว');
+      } catch (err) {
+        console.error("Error clearing logs:", err);
+        triggerToast('เกิดข้อผิดพลาดในการล้างประวัติการทำงาน');
+      }
+    }
+    setShowClearLogsConfirm(false);
   };
 
   if (!isAuthorized) {
@@ -371,13 +403,25 @@ export default function AdminDashboard({
 
             <button
               type="submit"
-              className="w-full h-12 mt-6 bg-primary text-on-primary rounded-xl font-bold hover:opacity-95 cursor-pointer transition-standard shadow-md flex items-center justify-center gap-2 text-sm"
+              className="w-full h-12 mt-6 bg-primary text-on-primary rounded-xl font-bold hover:opacity-95 cursor-pointer transition-standard shadow-md flex items-center justify-center gap-2 text-sm animate-scale-up"
               id="login-submit-btn"
             >
               <LogIn className="w-4 h-4" />
               <span>เข้าสู่ระบบแอดมิน</span>
             </button>
           </form>
+
+          {/* List of admin credentials for easy reference */}
+          <div className="mt-6 p-4 bg-surface-container-low rounded-xl border border-outline-variant/40 text-xs font-sans text-on-surface-variant/80 text-left animate-fade-in">
+            <p className="font-bold text-primary mb-2 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <span>บัญชีผู้ดูแลระบบที่พร้อมใช้งาน:</span>
+            </p>
+            <ul className="space-y-1.5 list-disc list-inside">
+              <li><strong className="text-on-surface">saran</strong> / saran12345 (แอดมิน ศรัณย์)</li>
+              <li><strong className="text-on-surface">kla</strong> / kla12345 (แอดมิน กล้า)</li>
+            </ul>
+          </div>
 
           <p className="text-[10px] text-outline mt-8 font-medium">
             ระบบความปลอดภัยควบคุมภายในโดย ชมรมศิษย์วัดตากฟ้า
@@ -1007,34 +1051,53 @@ export default function AdminDashboard({
 
       {/* System Audit Logs Section */}
       <div className="mt-10" id="audit-logs-panel">
-        <h3 className="font-sans font-bold text-xl text-primary mb-4 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-primary" />
-          <span>ประวัติการทำงานล่าสุด (System Audit Logs)</span>
-        </h3>
-        <div className="space-y-3.5">
-          {logs.slice(0, 5).map((log) => (
-            <div 
-              key={log.id}
-              className="flex items-center gap-4 p-4 bg-surface-container/60 rounded-xl border border-outline-variant/15 hover:border-outline-variant/35 transition-standard"
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+          <h3 className="font-sans font-bold text-xl text-primary flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            <span>ประวัติการทำงานล่าสุด (System Audit Logs)</span>
+          </h3>
+          {logs.length > 0 && onClearLogs && (
+            <button
+              onClick={() => setShowClearLogsConfirm(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-error/10 hover:bg-error/15 text-error border border-error/25 hover:border-error/35 rounded-xl text-xs font-bold transition-standard cursor-pointer"
+              title="ล้างประวัติการทำงานทั้งหมด"
             >
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                log.type === 'approve' ? 'bg-primary-container/20 text-primary' :
-                log.type === 'export' ? 'bg-green-100 text-green-700' :
-                log.type === 'register' ? 'bg-warning/10 text-warning' : 'bg-secondary-container text-secondary'
-              }`}>
-                {log.type === 'approve' && <CheckCircle className="w-4 h-4" />}
-                {log.type === 'export' && <Download className="w-4 h-4" />}
-                {log.type === 'register' && <RefreshCw className="w-4 h-4 animate-spin-slow" />}
-                {log.type !== 'approve' && log.type !== 'export' && log.type !== 'register' && <Clock className="w-4 h-4" />}
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>ล้างประวัติทั้งหมด</span>
+            </button>
+          )}
+        </div>
+        <div className="space-y-3.5">
+          {logs.length > 0 ? (
+            logs.slice(0, 8).map((log) => (
+              <div 
+                key={log.id}
+                className="flex items-center gap-4 p-4 bg-surface-container/60 rounded-xl border border-outline-variant/15 hover:border-outline-variant/35 transition-standard"
+              >
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                  log.type === 'approve' ? 'bg-primary-container/20 text-primary' :
+                  log.type === 'export' ? 'bg-green-100 text-green-700' :
+                  log.type === 'register' ? 'bg-warning/10 text-warning' : 'bg-secondary-container text-secondary'
+                }`}>
+                  {log.type === 'approve' && <CheckCircle className="w-4 h-4" />}
+                  {log.type === 'export' && <Download className="w-4 h-4" />}
+                  {log.type === 'register' && <RefreshCw className="w-4 h-4 animate-spin-slow" />}
+                  {log.type !== 'approve' && log.type !== 'export' && log.type !== 'register' && <Clock className="w-4 h-4" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-on-surface truncate">
+                    <strong className="font-bold">{log.adminName}</strong> {log.action}
+                  </p>
+                  <p className="text-[10px] text-outline mt-0.5">{log.timestamp}</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-on-surface truncate">
-                  <strong className="font-bold">{log.adminName}</strong> {log.action}
-                </p>
-                <p className="text-[10px] text-outline mt-0.5">{log.timestamp}</p>
-              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center bg-surface-container/30 border border-dashed border-outline-variant/40 rounded-xl text-outline animate-fade-in">
+              <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="font-semibold text-xs">ยังไม่มีประวัติการทำงานใดๆ ในระบบขณะนี้</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -1299,6 +1362,37 @@ export default function AdminDashboard({
                 className="flex-1 py-2.5 bg-error text-on-error rounded-xl font-bold hover:bg-error/90 cursor-pointer transition-standard text-sm shadow-md"
               >
                 ยืนยันลบข้อมูล
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Clear Logs Confirmation Modal */}
+      {showClearLogsConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm animate-fade-in" id="clear-logs-confirmation-modal">
+          <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-sm w-full shadow-2xl relative border border-outline-variant/30 text-center animate-scale-up">
+            <div className="w-12 h-12 bg-error/10 text-error rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <h3 className="font-sans font-bold text-lg text-on-surface mb-2">ยืนยันการล้างประวัติทั้งหมด</h3>
+            <p className="text-sm text-on-surface-variant mb-6 leading-relaxed">
+              คุณต้องการ <span className="font-bold text-error">ล้างประวัติการทำงาน (System Audit Logs) ทั้งหมด</span> ออกจากฐานข้อมูลใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => setShowClearLogsConfirm(false)}
+                className="flex-1 py-2.5 bg-surface-container-high text-on-surface-variant rounded-xl font-semibold hover:bg-surface-variant cursor-pointer transition-standard text-sm"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleClearLogsAction}
+                className="flex-1 py-2.5 bg-error text-on-error rounded-xl font-bold hover:bg-error/90 cursor-pointer transition-standard text-sm shadow-md"
+              >
+                ยืนยันล้างข้อมูล
               </button>
             </div>
           </div>
