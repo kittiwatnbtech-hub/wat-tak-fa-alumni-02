@@ -1,0 +1,6 @@
+{
+  "name": "Wat Tak Fa Alumni",
+  "description": "ระบบทำเนียบศิษย์เก่าโรงเรียนวัดตากฟ้า พระอารามหลวง ค้นหา เชื่อมต่อ และลงทะเบียนศิษย์เก่า",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
