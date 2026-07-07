@@ -39,7 +39,7 @@ import {
   Pie
 } from 'recharts';
 import { AlumniProfile, ActivityLog } from '../types';
-import { ENTRY_YEARS, getAvailableGrades, calculateGeneration, getEntryGrade } from '../data/mockAlumni';
+import { ENTRY_YEARS, getAvailableGrades, calculateGeneration, getEntryGrade, THAI_PROVINCES } from '../data/mockAlumni';
 
 // Helper to categorize alumni occupations into groups for the bar chart
 const getOccupationGroup = (occupation: string): string => {
@@ -1048,8 +1048,9 @@ export default function AdminDashboard({
       {/* Alumnus Edit Modal */}
       {editingAlumnus && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm animate-fade-in" id="edit-modal-overlay">
-          <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-lg w-full shadow-2xl relative border border-outline-variant/30 animate-scale-up">
-            <div className="flex justify-between items-center pb-4 border-b border-outline-variant/30 mb-5">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-lg w-full shadow-2xl relative border border-outline-variant/30 animate-scale-up flex flex-col max-h-[90vh]">
+            {/* Modal Header (Fixed) */}
+            <div className="flex justify-between items-center p-6 pb-4 border-b border-outline-variant/30 shrink-0">
               <h3 className="font-sans font-bold text-lg text-primary flex items-center gap-2">
                 <Edit3 className="w-5 h-5" />
                 <span>แก้ไขข้อมูลประวัติศิษย์เก่า</span>
@@ -1062,171 +1063,190 @@ export default function AdminDashboard({
               </button>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-4">
-                {/* Profile Image Edit */}
-                <div className="col-span-2 flex flex-col items-center gap-2 pb-2" id="edit-profile-image-section">
-                  <div 
-                    className="relative group cursor-pointer" 
-                    onClick={() => editFileInputRef.current?.click()}
-                    title="คลิกเพื่อเปลี่ยนรูปภาพ"
-                  >
-                    <div className="w-24 h-24 rounded-full bg-surface-container-high border-2 border-dashed border-outline hover:border-primary flex items-center justify-center overflow-hidden transition-standard shadow-sm">
-                      {editingAlumnus.imageUrl ? (
-                        <img 
-                          src={editingAlumnus.imageUrl} 
-                          alt="Profile Preview" 
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <img 
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(editingAlumnus.fullname)}`}
-                          alt="Generated Avatar" 
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      )}
+            {/* Form wrapping scrollable content and fixed footer */}
+            <form onSubmit={handleEditSubmit} className="flex-1 flex flex-col overflow-hidden min-h-0">
+              {/* Scrollable Form Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 text-sm scrollbar-thin">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Profile Image Edit */}
+                  <div className="col-span-2 flex flex-col items-center gap-2 pb-2" id="edit-profile-image-section">
+                    <div 
+                      className="relative group cursor-pointer" 
+                      onClick={() => editFileInputRef.current?.click()}
+                      title="คลิกเพื่อเปลี่ยนรูปภาพ"
+                    >
+                      <div className="w-24 h-24 rounded-full bg-surface-container-high border-2 border-dashed border-outline hover:border-primary flex items-center justify-center overflow-hidden transition-standard shadow-sm">
+                        {editingAlumnus.imageUrl ? (
+                          <img 
+                            src={editingAlumnus.imageUrl} 
+                            alt="Profile Preview" 
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <img 
+                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(editingAlumnus.fullname)}`}
+                            alt="Generated Avatar" 
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        )}
+                      </div>
+                      <div className="absolute bottom-0 right-0 bg-primary text-on-primary p-2 rounded-full shadow-lg active:scale-90 transition-standard">
+                        <Camera className="w-3.5 h-3.5" />
+                      </div>
+                      <input 
+                        type="file" 
+                        ref={editFileInputRef}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              setEditingAlumnus({ ...editingAlumnus, imageUrl: reader.result as string });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        id="edit-profile-picture-input"
+                      />
                     </div>
-                    <div className="absolute bottom-0 right-0 bg-primary text-on-primary p-2 rounded-full shadow-lg active:scale-90 transition-standard">
-                      <Camera className="w-3.5 h-3.5" />
-                    </div>
+                    <span className="text-[11px] text-outline font-semibold font-sans">คลิกที่รูปภาพเพื่อแก้ไขรูปภาพโปรไฟล์</span>
+                  </div>
+
+                  {/* Full name */}
+                  <div className="col-span-2 flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-outline">ชื่อ-นามสกุล</label>
                     <input 
-                      type="file" 
-                      ref={editFileInputRef}
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = () => {
-                            setEditingAlumnus({ ...editingAlumnus, imageUrl: reader.result as string });
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      id="edit-profile-picture-input"
+                      type="text" 
+                      required
+                      className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25"
+                      value={editingAlumnus.fullname}
+                      onChange={(e) => setEditingAlumnus({ ...editingAlumnus, fullname: e.target.value })}
                     />
                   </div>
-                  <span className="text-[11px] text-outline font-semibold font-sans">คลิกที่รูปภาพเพื่อแก้ไขรูปภาพโปรไฟล์</span>
-                </div>
 
-                {/* Full name */}
-                <div className="col-span-2 flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-outline">ชื่อ-นามสกุล</label>
-                  <input 
-                    type="text" 
-                    required
-                    className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25"
-                    value={editingAlumnus.fullname}
-                    onChange={(e) => setEditingAlumnus({ ...editingAlumnus, fullname: e.target.value })}
-                  />
-                </div>
-
-                {/* Nickname */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-outline">ชื่อเล่น</label>
-                  <input 
-                    type="text" 
-                    className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25"
-                    value={editingAlumnus.nickname}
-                    onChange={(e) => setEditingAlumnus({ ...editingAlumnus, nickname: e.target.value })}
-                  />
-                </div>
-
-                {/* Phone */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-outline">เบอร์โทรศัพท์</label>
-                  <input 
-                    type="text" 
-                    required
-                    className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25"
-                    value={editingAlumnus.phone}
-                    onChange={(e) => setEditingAlumnus({ ...editingAlumnus, phone: e.target.value })}
-                  />
-                </div>
-
-                {/* Academic Year Selector */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-outline font-sans">ปีการศึกษาที่เข้าเรียน</label>
-                  <select 
-                    className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25 bg-surface cursor-pointer font-sans text-sm"
-                    value={editingAlumnus.academic_year}
-                    onChange={(e) => {
-                      const yr = parseInt(e.target.value) || 2560;
-                      const currentGrade = getEntryGrade(editingAlumnus.academic_year, editingAlumnus.generation);
-                      const availableGrades = getAvailableGrades(yr);
-                      const nextGrade = availableGrades.includes(currentGrade) ? currentGrade : availableGrades[0];
-                      const nextGen = calculateGeneration(yr, nextGrade);
-                      setEditingAlumnus({ 
-                        ...editingAlumnus, 
-                        academic_year: yr, 
-                        generation: nextGen 
-                      });
-                    }}
-                  >
-                    {[...ENTRY_YEARS].reverse().map((yr) => (
-                      <option key={yr} value={yr}>พ.ศ. {yr}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Entry Grade Level Selector */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-outline font-sans">ระดับชั้นเมื่อแรกเข้าศึกษา</label>
-                  <select 
-                    className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25 bg-surface cursor-pointer font-sans text-sm"
-                    value={getEntryGrade(editingAlumnus.academic_year, editingAlumnus.generation)}
-                    onChange={(e) => {
-                      const grade = e.target.value;
-                      const nextGen = calculateGeneration(editingAlumnus.academic_year, grade);
-                      setEditingAlumnus({ 
-                        ...editingAlumnus, 
-                        generation: nextGen 
-                      });
-                    }}
-                  >
-                    {getAvailableGrades(editingAlumnus.academic_year).map((grade) => (
-                      <option key={grade} value={grade}>เข้าเรียนชั้น {grade}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Calculated Generation Display */}
-                <div className="col-span-2 mt-1">
-                  <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex items-center justify-between text-xs">
-                    <span className="font-semibold text-primary">คำนวณรุ่นศิษย์เก่าอัตโนมัติ:</span>
-                    <span className="font-extrabold text-primary font-sans text-sm">ศิษย์เก่า รุ่นที่ {editingAlumnus.generation}</span>
+                  {/* Nickname */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-outline">ชื่อเล่น</label>
+                    <input 
+                      type="text" 
+                      className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25"
+                      value={editingAlumnus.nickname || ''}
+                      onChange={(e) => setEditingAlumnus({ ...editingAlumnus, nickname: e.target.value })}
+                    />
                   </div>
-                </div>
 
-                {/* Occupation */}
-                <div className="col-span-2 flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-outline">อาชีพปัจจุบัน</label>
-                  <input 
-                    type="text" 
-                    required
-                    className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25"
-                    value={editingAlumnus.occupation}
-                    onChange={(e) => setEditingAlumnus({ ...editingAlumnus, occupation: e.target.value })}
-                  />
-                </div>
+                  {/* Phone */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-outline">เบอร์โทรศัพท์</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25"
+                      value={editingAlumnus.phone}
+                      onChange={(e) => setEditingAlumnus({ ...editingAlumnus, phone: e.target.value })}
+                    />
+                  </div>
 
-                {/* Address */}
-                <div className="col-span-2 flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-outline">ที่อยู่ / พำนัก</label>
-                  <textarea 
-                    rows={2}
-                    required
-                    className="p-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25 resize-none"
-                    value={editingAlumnus.address}
-                    onChange={(e) => setEditingAlumnus({ ...editingAlumnus, address: e.target.value })}
-                  />
+                  {/* Academic Year Selector */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-outline font-sans">ปีการศึกษาที่เข้าเรียน</label>
+                    <select 
+                      className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25 bg-surface cursor-pointer font-sans text-sm"
+                      value={editingAlumnus.academic_year}
+                      onChange={(e) => {
+                        const yr = parseInt(e.target.value) || 2560;
+                        const currentGrade = getEntryGrade(editingAlumnus.academic_year, editingAlumnus.generation);
+                        const availableGrades = getAvailableGrades(yr);
+                        const nextGrade = availableGrades.includes(currentGrade) ? currentGrade : availableGrades[0];
+                        const nextGen = calculateGeneration(yr, nextGrade);
+                        setEditingAlumnus({ 
+                          ...editingAlumnus, 
+                          academic_year: yr, 
+                          generation: nextGen 
+                        });
+                      }}
+                    >
+                      {[...ENTRY_YEARS].reverse().map((yr) => (
+                        <option key={yr} value={yr}>พ.ศ. {yr}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Entry Grade Level Selector */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-outline font-sans">ระดับชั้นเมื่อแรกเข้าศึกษา</label>
+                    <select 
+                      className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25 bg-surface cursor-pointer font-sans text-sm"
+                      value={getEntryGrade(editingAlumnus.academic_year, editingAlumnus.generation)}
+                      onChange={(e) => {
+                        const grade = e.target.value;
+                        const nextGen = calculateGeneration(editingAlumnus.academic_year, grade);
+                        setEditingAlumnus({ 
+                          ...editingAlumnus, 
+                          generation: nextGen 
+                        });
+                      }}
+                    >
+                      {getAvailableGrades(editingAlumnus.academic_year).map((grade) => (
+                        <option key={grade} value={grade}>เข้าเรียนชั้น {grade}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Calculated Generation Display */}
+                  <div className="col-span-2 mt-1">
+                    <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex items-center justify-between text-xs">
+                      <span className="font-semibold text-primary">คำนวณรุ่นศิษย์เก่าอัตโนมัติ:</span>
+                      <span className="font-extrabold text-primary font-sans text-sm">ศิษย์เก่า รุ่นที่ {editingAlumnus.generation}</span>
+                    </div>
+                  </div>
+
+                  {/* Province Selector */}
+                  <div className="col-span-2 flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-outline font-sans">จังหวัดที่อยู่ปัจจุบัน</label>
+                    <select 
+                      className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25 bg-surface cursor-pointer font-sans text-sm"
+                      value={editingAlumnus.province || 'นครสวรรค์'}
+                      onChange={(e) => setEditingAlumnus({ ...editingAlumnus, province: e.target.value })}
+                    >
+                      {THAI_PROVINCES.map((prov) => (
+                        <option key={prov} value={prov}>{prov}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Occupation */}
+                  <div className="col-span-2 flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-outline">อาชีพปัจจุบัน</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25"
+                      value={editingAlumnus.occupation || ''}
+                      onChange={(e) => setEditingAlumnus({ ...editingAlumnus, occupation: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Address */}
+                  <div className="col-span-2 flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-outline">ที่อยู่ / พำนัก</label>
+                    <textarea 
+                      rows={2}
+                      required
+                      className="p-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25 resize-none"
+                      value={editingAlumnus.address || ''}
+                      onChange={(e) => setEditingAlumnus({ ...editingAlumnus, address: e.target.value })}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-4 flex gap-3 border-t border-outline-variant/30 mt-6 justify-end">
+              {/* Sticky Footer Actions (Fixed) */}
+              <div className="p-6 pt-4 border-t border-outline-variant/30 flex gap-3 justify-end bg-surface-container-lowest shrink-0 rounded-b-2xl">
                 <button 
                   type="button" 
                   onClick={() => setEditingAlumnus(null)}
