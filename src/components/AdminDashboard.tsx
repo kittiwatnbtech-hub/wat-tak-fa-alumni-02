@@ -119,8 +119,9 @@ export default function AdminDashboard({
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Available admin accounts (2 accounts requested by user)
+    // Available admin accounts (saran, kla, and default admin)
     const adminAccounts = [
+      { u: 'admin', p: 'admin1234', name: 'แอดมิน ระบบ' },
       { u: 'saran', p: 'saran12345', name: 'แอดมิน ศรัณย์' },
       { u: 'kla', p: 'kla12345', name: 'แอดมิน กล้า' }
     ];
