@@ -39,7 +39,7 @@ import {
   Pie
 } from 'recharts';
 import { AlumniProfile, ActivityLog } from '../types';
-import { ENTRY_YEARS, getAvailableGrades, calculateGeneration, getEntryGrade, THAI_PROVINCES } from '../data/mockAlumni';
+import { ENTRY_YEARS, getAvailableGrades, calculateGeneration, getEntryGrade, THAI_PROVINCES, resolveImageUrl } from '../data/mockAlumni';
 import { compressImage } from '../lib/imageUtils';
 
 // Helper to categorize alumni occupations into groups for the bar chart
@@ -817,7 +817,7 @@ export default function AdminDashboard({
                         <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary font-bold overflow-hidden shrink-0 border border-outline-variant/20">
                           <img 
                             src={item.imageUrl
-                              ? item.imageUrl
+                              ? resolveImageUrl(item.imageUrl)
                               : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.fullname)}`
                             } 
                             alt={item.fullname} 
@@ -914,7 +914,7 @@ export default function AdminDashboard({
                     <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-primary font-bold overflow-hidden shrink-0 border border-outline-variant/20 shadow-sm">
                       <img 
                         src={item.imageUrl
-                          ? item.imageUrl
+                          ? resolveImageUrl(item.imageUrl)
                           : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.fullname)}`
                         } 
                         alt={item.fullname} 
@@ -1133,7 +1133,7 @@ export default function AdminDashboard({
                       <div className="w-24 h-24 rounded-full bg-surface-container-high border-2 border-dashed border-outline hover:border-primary flex items-center justify-center overflow-hidden transition-standard shadow-sm">
                         {editingAlumnus.imageUrl ? (
                           <img 
-                            src={editingAlumnus.imageUrl} 
+                            src={resolveImageUrl(editingAlumnus.imageUrl)} 
                             alt="Profile Preview" 
                             className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
