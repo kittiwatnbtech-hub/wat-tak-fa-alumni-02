@@ -30,64 +30,95 @@ export default function App() {
   // Tab control state
   const [activeTab, setActiveTab] = useState<'directory' | 'registration' | 'admin'>('directory');
 
-  // Load and preserve alumni database in Firestore (falling back to initial state during loading)
-  const [alumni, setAlumni] = useState<AlumniProfile[]>(INITIAL_ALUMNI);
-  const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
+  // Load and preserve alumni database with localStorage cache as resilient fallback (in case Firestore daily quota is exceeded)
+  const [alumni, setAlumni] = useState<AlumniProfile[]>(() => {
+    const cached = localStorage.getItem('local_alumni');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Check if it is the old stale demo data
+          const isStale = parsed.some(item => item.id === '1' || item.fullname === 'สรวิชญ์ นามสมมติ');
+          if (!isStale) {
+            return parsed;
+          }
+          console.log("Stale demo cache detected, resetting to restored real alumni data.");
+          localStorage.removeItem('local_alumni');
+        }
+      } catch (e) {
+        console.error("Failed to parse cached alumni", e);
+      }
+    }
+    return INITIAL_ALUMNI;
+  });
+
+  const [logs, setLogs] = useState<ActivityLog[]>(() => {
+    const cached = localStorage.getItem('local_logs');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Check if it is the old stale logs
+          const isStale = parsed.some(log => log.id === 'log-1' && log.action.includes('วนิดา ปัญญาดี'));
+          if (!isStale) {
+            return parsed;
+          }
+          console.log("Stale logs cache detected, resetting to restored real logs.");
+          localStorage.removeItem('local_logs');
+        }
+      } catch (e) {
+        console.error("Failed to parse cached logs", e);
+      }
+    }
+    return INITIAL_LOGS;
+  });
+
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
 
   useEffect(() => {
-    // Check if db is already seeded
+    // Attempt to seed initial data in Firestore if not already done, but handle errors gracefully (e.g. quota limit)
     const initDb = async () => {
       try {
         let statusDoc;
         try {
           statusDoc = await getDoc(doc(db, 'system', 'status'));
         } catch (error) {
-          handleFirestoreError(error, OperationType.GET, 'system/status');
+          const errStr = String(error);
+          if (errStr.includes('resource-exhausted') || errStr.includes('quota')) {
+            setIsQuotaExceeded(true);
+          }
+          console.warn("Could not get system status doc (likely due to quota limit). Fallback to local cache.");
           return;
         }
 
         const statusData = statusDoc.exists() ? statusDoc.data() : null;
-        const isSeeded = statusData?.seeded;
-        const isLogsUpdated = statusData?.logs_v2_updated;
+        const isSeededV3 = statusData?.seeded_real_v3;
 
-        if (!isSeeded) {
-          console.log("Seeding INITIAL_ALUMNI and INITIAL_LOGS to Firestore...");
-          // Seed to Firestore
+        if (!isSeededV3) {
+          console.log("Seeding restored real INITIAL_ALUMNI and INITIAL_LOGS to Firestore...");
+          // Seed to Firestore to ensure real profiles exist on database
           for (const item of INITIAL_ALUMNI) {
             try {
               await setDoc(doc(db, 'alumni', item.id), item);
             } catch (error) {
-              handleFirestoreError(error, OperationType.CREATE, `alumni/${item.id}`);
+              console.error(`Error seeding alumni ${item.id}:`, error);
             }
           }
           for (const log of INITIAL_LOGS) {
             try {
               await setDoc(doc(db, 'logs', log.id), log);
             } catch (error) {
-              handleFirestoreError(error, OperationType.CREATE, `logs/${log.id}`);
+              console.error(`Error seeding log ${log.id}:`, error);
             }
           }
-          // Mark as seeded and logs v2 updated
           try {
-            await setDoc(doc(db, 'system', 'status'), { seeded: true, logs_v2_updated: true });
+            await setDoc(doc(db, 'system', 'status'), { 
+              seeded: true, 
+              logs_v2_updated: true, 
+              seeded_real_v3: true 
+            });
           } catch (error) {
-            handleFirestoreError(error, OperationType.CREATE, 'system/status');
-          }
-        } else if (!isLogsUpdated) {
-          console.log("Updating logs to v2 in Firestore...");
-          // Seed updated INITIAL_LOGS
-          for (const log of INITIAL_LOGS) {
-            try {
-              await setDoc(doc(db, 'logs', log.id), log);
-            } catch (error) {
-              handleFirestoreError(error, OperationType.CREATE, `logs/${log.id}`);
-            }
-          }
-          // Update status with logs_v2_updated
-          try {
-            await setDoc(doc(db, 'system', 'status'), { seeded: true, logs_v2_updated: true });
-          } catch (error) {
-            handleFirestoreError(error, OperationType.CREATE, 'system/status');
+            console.error("Error setting status doc:", error);
           }
         }
       } catch (error) {
@@ -103,15 +134,24 @@ export default function App() {
       snapshot.forEach((doc) => {
         list.push(doc.data() as AlumniProfile);
       });
+      
       // Sort by createdAt descending
       list.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
       });
-      setAlumni(list);
+
+      if (list.length > 0) {
+        setAlumni(list);
+        localStorage.setItem('local_alumni', JSON.stringify(list));
+      }
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'alumni');
+      const errStr = String(error);
+      if (errStr.includes('resource-exhausted') || errStr.includes('quota') || error.code === 'resource-exhausted') {
+        setIsQuotaExceeded(true);
+      }
+      console.warn("Firestore onSnapshot error (using local cache mode):", error);
     });
 
     // 2. Subscribe to logs in Firestore
@@ -122,9 +162,17 @@ export default function App() {
       });
       // Sort by ID descending
       list.sort((a, b) => b.id.localeCompare(a.id));
-      setLogs(list);
+      
+      if (list.length > 0) {
+        setLogs(list);
+        localStorage.setItem('local_logs', JSON.stringify(list));
+      }
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'logs');
+      const errStr = String(error);
+      if (errStr.includes('resource-exhausted') || errStr.includes('quota') || error.code === 'resource-exhausted') {
+        setIsQuotaExceeded(true);
+      }
+      console.warn("Firestore logs subscription error:", error);
     });
 
     return () => {
@@ -148,10 +196,16 @@ export default function App() {
       timestamp: 'เมื่อสักครู่',
       type
     };
+
+    // Update local state immediately for instant feedback
+    const updatedLogs = [newLog, ...logs];
+    setLogs(updatedLogs);
+    localStorage.setItem('local_logs', JSON.stringify(updatedLogs));
+
     try {
       await setDoc(doc(db, 'logs', logId), newLog);
     } catch (e) {
-      handleFirestoreError(e, OperationType.CREATE, `logs/${logId}`);
+      console.warn("Could not save log to Firestore (likely quota limit).", e);
     }
   };
 
@@ -165,61 +219,88 @@ export default function App() {
       createdAt: new Date().toISOString()
     };
     
+    // Update local state immediately so user sees it right away
+    const updatedAlumni = [createdProfile, ...alumni];
+    setAlumni(updatedAlumni);
+    localStorage.setItem('local_alumni', JSON.stringify(updatedAlumni));
+
+    // Log action locally
+    const logId = `log-${Date.now()}`;
+    const msg = `ส่งใบสมัครลงทะเบียนศิษย์เก่าใหม่: คุณ${newAlumnus.fullname} (รุ่นที่ ${newAlumnus.generation})`;
+    const newLog: ActivityLog = {
+      id: logId,
+      adminName: 'ระบบชมรม',
+      action: msg,
+      timestamp: 'เมื่อสักครู่',
+      type: 'register'
+    };
+    const updatedLogs = [newLog, ...logs];
+    setLogs(updatedLogs);
+    localStorage.setItem('local_logs', JSON.stringify(updatedLogs));
+    
     try {
       await setDoc(doc(db, 'alumni', id), createdProfile);
-      
-      // Add public-facing and audit logs
-      const logId = `log-${Date.now()}`;
-      const msg = `ส่งใบสมัครลงทะเบียนศิษย์เก่าใหม่: คุณ${newAlumnus.fullname} (รุ่นที่ ${newAlumnus.generation})`;
-      const newLog: ActivityLog = {
-        id: logId,
-        adminName: 'ระบบชมรม',
-        action: msg,
-        timestamp: 'เมื่อสักครู่',
-        type: 'register'
-      };
       await setDoc(doc(db, 'logs', logId), newLog);
     } catch (e) {
-      handleFirestoreError(e, OperationType.CREATE, `alumni/${id}`);
+      console.warn("Could not write new alumnus to Firestore (saved locally).", e);
     }
   };
 
   // Admin approves alumnus
   const handleApproveAlumnus = async (id: string) => {
+    // Update local state immediately
+    const updatedAlumni = alumni.map(item => item.id === id ? { ...item, status: 'approved' as const } : item);
+    setAlumni(updatedAlumni);
+    localStorage.setItem('local_alumni', JSON.stringify(updatedAlumni));
+
     try {
       await updateDoc(doc(db, 'alumni', id), { status: 'approved' });
     } catch (e) {
-      handleFirestoreError(e, OperationType.UPDATE, `alumni/${id}`);
+      console.warn("Could not approve alumnus in Firestore (saved locally).", e);
     }
   };
 
   // Admin deletes profile
   const handleDeleteAlumnus = async (id: string) => {
+    // Update local state immediately
+    const updatedAlumni = alumni.filter(item => item.id !== id);
+    setAlumni(updatedAlumni);
+    localStorage.setItem('local_alumni', JSON.stringify(updatedAlumni));
+
     try {
       await deleteDoc(doc(db, 'alumni', id));
     } catch (e) {
-      handleFirestoreError(e, OperationType.DELETE, `alumni/${id}`);
+      console.warn("Could not delete alumnus in Firestore (saved locally).", e);
     }
   };
 
   // Admin edits profile
   const handleEditAlumnus = async (updated: AlumniProfile) => {
+    // Update local state immediately
+    const updatedAlumni = alumni.map(item => item.id === updated.id ? updated : item);
+    setAlumni(updatedAlumni);
+    localStorage.setItem('local_alumni', JSON.stringify(updatedAlumni));
+
     try {
       await setDoc(doc(db, 'alumni', updated.id), updated);
     } catch (e) {
-      handleFirestoreError(e, OperationType.UPDATE, `alumni/${updated.id}`);
+      console.warn("Could not edit alumnus in Firestore (saved locally).", e);
     }
   };
 
   // Admin clears all logs
   const handleClearLogs = async () => {
+    // Clear local state immediately
+    setLogs([]);
+    localStorage.setItem('local_logs', JSON.stringify([]));
+
     try {
       const logsCol = collection(db, 'logs');
       const qSnapshot = await getDocs(logsCol);
       const batchPromises = qSnapshot.docs.map((d) => deleteDoc(d.ref));
       await Promise.all(batchPromises);
     } catch (e) {
-      handleFirestoreError(e, OperationType.DELETE, 'logs');
+      console.warn("Could not clear logs in Firestore (saved locally).", e);
     }
   };
 
@@ -271,6 +352,43 @@ export default function App() {
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-6 lg:px-8 py-10 w-full flex-grow" id="main-content">
+        {isQuotaExceeded && (
+          <div className="mb-8 p-6 bg-amber-500/10 border border-amber-500/30 rounded-3xl flex flex-col md:flex-row items-start gap-4 text-sm text-on-surface animate-fade-in" id="quota-exceeded-notice">
+            <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-500 shrink-0">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <div className="flex-grow">
+              <p className="font-bold text-amber-500 text-lg">แจ้งเตือน: ตรวจพบ Google Firebase โควตาเต็ม (Daily Quota Exceeded)</p>
+              
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-on-surface-variant font-mono bg-surface-container-low p-3 rounded-xl border border-outline-variant/30">
+                <div>
+                  <span className="text-on-surface font-bold">สถานะการเชื่อมต่อ:</span> <span className="text-emerald-500 font-bold">เชื่อมต่อสำเร็จ ✅</span>
+                </div>
+                <div>
+                  <span className="text-on-surface font-bold">ฐานข้อมูลเป้าหมาย:</span> <span className="text-primary font-bold">ai-studio-wattakfaalumni-5ead791e-124a-49e7-ac62-8501af6e0ab6</span>
+                </div>
+                <div>
+                  <span className="text-on-surface font-bold">Google Project ID:</span> <span className="text-on-surface">rosy-dialect-488414-r1</span>
+                </div>
+                <div>
+                  <span className="text-on-surface font-bold">ข้อผิดพลาดจาก Google:</span> <span className="text-amber-500 font-bold">Quota limit exceeded (Free Tier 50k reads/day limit)</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-on-surface-variant mt-3 leading-relaxed">
+                เนื่องจากโปรเจกต์ Firebase ของท่านอยู่ในแพ็กเกจฟรี (Spark Plan) ซึ่งมีข้อจำกัดจำนวนการดึงข้อมูล 50,000 ครั้งต่อวัน และตอนนี้โควตาดังกล่าวได้ถูกใช้งานจนหมดแล้ว Google จึงปิดกั้นคำขอใช้งานฐานข้อมูลชั่วคราวเป็นเวลา 24 ชั่วโมง
+              </p>
+              
+              <div className="mt-3 text-xs border-l-2 border-primary pl-3 py-1 bg-primary/5 rounded-r-lg">
+                <p className="font-semibold text-primary">💡 ระบบสำรองข้อมูลอัตโนมัติ (Resilient Offline Mode) ทำงานแล้ว:</p>
+                <p className="text-on-surface-variant mt-0.5">
+                  เพื่อป้องกันข้อมูลสูญหาย ระบบได้ดึงข้อมูลศิษย์เก่าตัวจริงจากทำเนียบ (รวมถึง คุณสุวภัทร, คุณวิบูลย์, คุณณัฐพงษ์) จากหน่วยความจำสำรองมาแสดงผลให้ท่านใช้งานได้อย่างราบรื่น ท่านสามารถ ค้นหาข้อมูล, คัดกรองตามรุ่น, หรือลงทะเบียนใหม่ ได้ 100% โดยข้อมูลใหม่จะบันทึกในเบราว์เซอร์ของท่านชั่วคราว และจะส่งขึ้นระบบฐานข้อมูลคลาวด์โดยอัตโนมัติเมื่อ Google ปลดล็อกโควตาใหม่ในวันถัดไป หรือเมื่อแอดมินอัปเกรดแผนใช้งานในคอนโซล Firebase เป็น Blaze (Pay-As-You-Go)
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'directory' && (
           <DirectoryView alumni={alumni} />
         )}

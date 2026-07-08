@@ -23,6 +23,37 @@ interface RegistrationViewProps {
   onRegister: (newAlumnus: Omit<AlumniProfile, 'id' | 'status' | 'createdAt'>) => Promise<void> | void;
 }
 
+const DHAMMA_EDU_OPTIONS = [
+  'ไม่มี',
+  'นักธรรมชั้นตรี',
+  'นักธรรมชั้นโท',
+  'นักธรรมชั้นเอก',
+  'ป.ธ.1-2',
+  'ป.ธ.3',
+  'ป.ธ.4',
+  'ป.ธ.5',
+  'ป.ธ.6',
+  'ป.ธ.7',
+  'ป.ธ.8',
+  'ป.ธ.9',
+  'อื่นๆโปรดระบุ'
+];
+
+const SECULAR_EDU_OPTIONS = [
+  'มัธยมศึกษาปีที่ 1 (ม.1)',
+  'มัธยมศึกษาปีที่ 2 (ม.2)',
+  'มัธยมศึกษาปีที่ 3 (ม.3)',
+  'มัธยมศึกษาปีที่ 4 (ม.4)',
+  'มัธยมศึกษาปีที่ 5 (ม.5)',
+  'มัธยมศึกษาปีที่ 6 (ม.6)',
+  'ประกาศนียบัตรวิชาชีพ (ปวช.)',
+  'ประกาศนียบัตรวิชาชีพชั้นสูง (ปวส.)',
+  'ปริญญาตรี',
+  'ปริญญาโท',
+  'ปริญญาเอก',
+  'อื่นๆ โปรดระบุ'
+];
+
 export default function RegistrationView({ onRegister }: RegistrationViewProps) {
   // Form fields state
   const [fullname, setFullname] = useState('');
@@ -31,6 +62,10 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
   const [lineid, setLineid] = useState('');
   const [academicYear, setAcademicYear] = useState('2560');
   const [entryGrade, setEntryGrade] = useState('ม.1');
+  const [dhammaEdu, setDhammaEdu] = useState('ไม่มี');
+  const [dhammaEduOther, setDhammaEduOther] = useState('');
+  const [secularEdu, setSecularEdu] = useState('ปริญญาตรี');
+  const [secularEduOther, setSecularEduOther] = useState('');
   const [occupationGroup, setOccupationGroup] = useState('');
   const [occupationDetail, setOccupationDetail] = useState('');
   const [address, setAddress] = useState('');
@@ -88,11 +123,29 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
       return;
     }
 
+    if (dhammaEdu === 'อื่นๆโปรดระบุ' && !dhammaEduOther.trim()) {
+      setErrorMessage('กรุณาระบุวุฒิการศึกษาทางธรรมเพิ่มเติม');
+      return;
+    }
+
+    if (secularEdu === 'อื่นๆ โปรดระบุ' && !secularEduOther.trim()) {
+      setErrorMessage('กรุณาระบุวุฒิการศึกษาทางโลกเพิ่มเติม');
+      return;
+    }
+
     setIsSubmitting(true);
 
     const finalOccupation = occupationDetail.trim() 
       ? `${occupationGroup} (${occupationDetail.trim()})` 
       : occupationGroup;
+
+    const finalDhamma = dhammaEdu === 'อื่นๆโปรดระบุ'
+      ? `อื่นๆ (${dhammaEduOther.trim()})`
+      : dhammaEdu;
+
+    const finalSecular = secularEdu === 'อื่นๆ โปรดระบุ'
+      ? `อื่นๆ (${secularEduOther.trim()})`
+      : secularEdu;
 
     try {
       // Call onRegister and await its execution
@@ -103,10 +156,13 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
         lineid,
         generation: currentGen,
         academic_year: parseInt(academicYear) || 2560,
+        entry_grade: entryGrade,
         occupation: finalOccupation,
         address: `${address} จ.${selectedProvince}`,
         province: selectedProvince,
-        imageUrl: imagePreview || ''
+        imageUrl: imagePreview || '',
+        dhammaEducation: finalDhamma,
+        secularEducation: finalSecular
       });
 
       setIsSubmitting(false);
@@ -144,6 +200,10 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
     setLineid('');
     setAcademicYear('2560');
     setEntryGrade('ม.1');
+    setDhammaEdu('ไม่มี');
+    setDhammaEduOther('');
+    setSecularEdu('ปริญญาตรี');
+    setSecularEduOther('');
     setOccupationGroup('');
     setOccupationDetail('');
     setAddress('');
@@ -312,9 +372,12 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
               value={entryGrade}
               onChange={(e) => setEntryGrade(e.target.value)}
             >
-              {getAvailableGrades(parseInt(academicYear)).map((grade) => (
-                <option key={grade} value={grade}>เข้าเรียนชั้น {grade}</option>
-              ))}
+              {getAvailableGrades(parseInt(academicYear)).map((grade) => {
+                const label = grade === 'จบ ม.3 มาแล้วต่อ กศน.' ? grade : `เข้าเรียนชั้น ${grade}`;
+                return (
+                  <option key={grade} value={grade}>{label}</option>
+                );
+              })}
             </select>
           </div>
 
@@ -326,6 +389,85 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
               </span>
             </div>
           </div>
+
+          {/* Highest Dhamma Education Level Selector */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-on-surface-variant px-1" htmlFor="dhamma-education">
+              วุฒิการศึกษาทางธรรมสูงสุด <span className="text-error">*</span>
+            </label>
+            <select 
+              id="dhamma-education"
+              className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright transition-standard outline-none font-sans cursor-pointer"
+              value={dhammaEdu}
+              onChange={(e) => {
+                setDhammaEdu(e.target.value);
+                if (e.target.value !== 'อื่นๆโปรดระบุ') {
+                  setDhammaEduOther('');
+                }
+              }}
+            >
+              {DHAMMA_EDU_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Highest Secular Education Level Selector */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-on-surface-variant px-1" htmlFor="secular-education">
+              วุฒิการศึกษาทางโลกสูงสุด <span className="text-error">*</span>
+            </label>
+            <select 
+              id="secular-education"
+              className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright transition-standard outline-none font-sans cursor-pointer"
+              value={secularEdu}
+              onChange={(e) => {
+                setSecularEdu(e.target.value);
+                if (e.target.value !== 'อื่นๆ โปรดระบุ') {
+                  setSecularEduOther('');
+                }
+              }}
+            >
+              {SECULAR_EDU_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Conditional inputs for "Other" options */}
+          {dhammaEdu === 'อื่นๆโปรดระบุ' && (
+            <div className="flex flex-col gap-2 animate-fade-in">
+              <label className="text-sm font-semibold text-on-surface-variant px-1" htmlFor="dhamma-education-other">
+                ระบุวุฒิการศึกษาทางธรรมอื่นๆ <span className="text-error">*</span>
+              </label>
+              <input 
+                id="dhamma-education-other"
+                type="text" 
+                required
+                placeholder="โปรดระบุวุฒิการศึกษาทางธรรมของคุณ"
+                className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright transition-standard outline-none font-sans"
+                value={dhammaEduOther}
+                onChange={(e) => setDhammaEduOther(e.target.value)}
+              />
+            </div>
+          )}
+
+          {secularEdu === 'อื่นๆ โปรดระบุ' && (
+            <div className="flex flex-col gap-2 animate-fade-in">
+              <label className="text-sm font-semibold text-on-surface-variant px-1" htmlFor="secular-education-other">
+                ระบุวุฒิการศึกษาทางโลกอื่นๆ <span className="text-error">*</span>
+              </label>
+              <input 
+                id="secular-education-other"
+                type="text" 
+                required
+                placeholder="โปรดระบุวุฒิการศึกษาทางโลกของคุณ"
+                className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright transition-standard outline-none font-sans"
+                value={secularEduOther}
+                onChange={(e) => setSecularEduOther(e.target.value)}
+              />
+            </div>
+          )}
 
           {/* Province selector */}
           <div className="flex flex-col gap-2">

@@ -18,6 +18,9 @@ export interface AlumniProfile {
   email?: string;
   imageUrl: string;
   createdAt: string;
+  dhammaEducation?: string;
+  secularEducation?: string;
+  entry_grade?: string;
 }
 
 export interface ActivityLog {

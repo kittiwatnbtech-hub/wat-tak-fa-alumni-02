@@ -19,6 +19,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { AlumniProfile } from '../types';
+import { getEntryGrade } from '../data/mockAlumni';
 
 interface DirectoryViewProps {
   alumni: AlumniProfile[];
@@ -357,12 +358,15 @@ export default function DirectoryView({ alumni }: DirectoryViewProps) {
                   <p className="text-sm text-on-surface-variant font-medium mt-1">ชื่อเล่น: {selectedAlumnus.nickname}</p>
                 )}
                 
-                <div className="flex gap-2 mt-3">
+                <div className="flex flex-wrap gap-2 mt-3">
                   <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold text-xs">
                     ศิษย์เก่ารุ่นที่ {selectedAlumnus.generation}
                   </span>
                   <span className="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-semibold text-xs border border-outline-variant/20">
                     เข้าเรียน พ.ศ. {selectedAlumnus.academic_year}
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-primary/5 text-primary/80 font-semibold text-xs border border-primary/10">
+                    {selectedAlumnus.entry_grade || getEntryGrade(selectedAlumnus.academic_year, selectedAlumnus.generation)}
                   </span>
                 </div>
               </div>
@@ -381,6 +385,26 @@ export default function DirectoryView({ alumni }: DirectoryViewProps) {
                     <p className="font-semibold text-on-surface mt-0.5">{selectedAlumnus.occupation || 'ไม่ได้ระบุ'}</p>
                   </div>
                 </div>
+
+                {selectedAlumnus.dhammaEducation && (
+                  <div className="flex items-start gap-3.5 text-sm">
+                    <span className="w-4 h-4 text-outline mt-0.5 shrink-0 font-bold text-[10px] flex items-center justify-center bg-primary/10 rounded text-primary border border-primary/20 select-none">ธรรม</span>
+                    <div>
+                      <p className="text-xs text-outline font-medium">วุฒิการศึกษาทางธรรมสูงสุด</p>
+                      <p className="font-semibold text-on-surface mt-0.5">{selectedAlumnus.dhammaEducation}</p>
+                    </div>
+                  </div>
+                )}
+
+                {selectedAlumnus.secularEducation && (
+                  <div className="flex items-start gap-3.5 text-sm">
+                    <span className="w-4 h-4 text-outline mt-0.5 shrink-0 font-bold text-[10px] flex items-center justify-center bg-primary/10 rounded text-primary border border-primary/20 select-none">โลก</span>
+                    <div>
+                      <p className="text-xs text-outline font-medium">วุฒิการศึกษาทางโลกสูงสุด</p>
+                      <p className="font-semibold text-on-surface mt-0.5">{selectedAlumnus.secularEducation}</p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-start gap-3.5 text-sm">
                   <MapPin className="w-4 h-4 text-outline mt-0.5 shrink-0" />

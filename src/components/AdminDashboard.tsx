@@ -1221,13 +1221,14 @@ export default function AdminDashboard({
                       value={editingAlumnus.academic_year}
                       onChange={(e) => {
                         const yr = parseInt(e.target.value) || 2560;
-                        const currentGrade = getEntryGrade(editingAlumnus.academic_year, editingAlumnus.generation);
+                        const currentGrade = editingAlumnus.entry_grade || getEntryGrade(editingAlumnus.academic_year, editingAlumnus.generation);
                         const availableGrades = getAvailableGrades(yr);
                         const nextGrade = availableGrades.includes(currentGrade) ? currentGrade : availableGrades[0];
                         const nextGen = calculateGeneration(yr, nextGrade);
                         setEditingAlumnus({ 
                           ...editingAlumnus, 
                           academic_year: yr, 
+                          entry_grade: nextGrade,
                           generation: nextGen 
                         });
                       }}
@@ -1243,19 +1244,23 @@ export default function AdminDashboard({
                     <label className="text-xs font-bold text-outline font-sans">ระดับชั้นเมื่อแรกเข้าศึกษา</label>
                     <select 
                       className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25 bg-surface cursor-pointer font-sans text-sm"
-                      value={getEntryGrade(editingAlumnus.academic_year, editingAlumnus.generation)}
+                      value={editingAlumnus.entry_grade || getEntryGrade(editingAlumnus.academic_year, editingAlumnus.generation)}
                       onChange={(e) => {
                         const grade = e.target.value;
                         const nextGen = calculateGeneration(editingAlumnus.academic_year, grade);
                         setEditingAlumnus({ 
                           ...editingAlumnus, 
+                          entry_grade: grade,
                           generation: nextGen 
                         });
                       }}
                     >
-                      {getAvailableGrades(editingAlumnus.academic_year).map((grade) => (
-                        <option key={grade} value={grade}>เข้าเรียนชั้น {grade}</option>
-                      ))}
+                      {getAvailableGrades(editingAlumnus.academic_year).map((grade) => {
+                        const label = grade === 'จบ ม.3 มาแล้วต่อ กศน.' ? grade : `เข้าเรียนชั้น ${grade}`;
+                        return (
+                          <option key={grade} value={grade}>{label}</option>
+                        );
+                      })}
                     </select>
                   </div>
 
@@ -1265,6 +1270,28 @@ export default function AdminDashboard({
                       <span className="font-semibold text-primary">คำนวณรุ่นศิษย์เก่าอัตโนมัติ:</span>
                       <span className="font-extrabold text-primary font-sans text-sm">ศิษย์เก่า รุ่นที่ {editingAlumnus.generation}</span>
                     </div>
+                  </div>
+
+                  {/* Dhamma Education */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-outline font-sans">วุฒิการศึกษาทางธรรมสูงสุด</label>
+                    <input 
+                      type="text" 
+                      className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25"
+                      value={editingAlumnus.dhammaEducation || ''}
+                      onChange={(e) => setEditingAlumnus({ ...editingAlumnus, dhammaEducation: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Secular Education */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-outline font-sans">วุฒิการศึกษาทางโลกสูงสุด</label>
+                    <input 
+                      type="text" 
+                      className="h-10 px-3 border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25"
+                      value={editingAlumnus.secularEducation || ''}
+                      onChange={(e) => setEditingAlumnus({ ...editingAlumnus, secularEducation: e.target.value })}
+                    />
                   </div>
 
                   {/* Province Selector */}
