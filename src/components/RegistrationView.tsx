@@ -18,6 +18,7 @@ import {
 import { AlumniProfile } from '../types';
 import { THAI_PROVINCES, ENTRY_YEARS, getAvailableGrades, calculateGeneration } from '../data/mockAlumni';
 import { compressImage } from '../lib/imageUtils';
+import ImageCropModal from './ImageCropModal';
 
 interface RegistrationViewProps {
   onRegister: (newAlumnus: Omit<AlumniProfile, 'id' | 'status' | 'createdAt'>) => Promise<void> | void;
@@ -74,6 +75,8 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
   
   // Image handling
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Submission State
@@ -89,18 +92,21 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = async () => {
+      reader.onload = () => {
         const rawBase64 = reader.result as string;
-        try {
-          const compressed = await compressImage(rawBase64);
-          setImagePreview(compressed);
-        } catch (err) {
-          console.error("Image compression error:", err);
-          setImagePreview(rawBase64);
+        setTempImageSrc(rawBase64);
+        setIsCropModalOpen(true);
+        // Reset file input value so selecting the same file again triggers change event
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
         }
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedBase64: string) => {
+    setImagePreview(croppedBase64);
   };
 
   // Submit Handler
@@ -623,6 +629,19 @@ export default function RegistrationView({ onRegister }: RegistrationViewProps) 
             </button>
           </div>
         </div>
+      )}
+
+      {/* Image Crop & Reposition Modal */}
+      {tempImageSrc && (
+        <ImageCropModal
+          isOpen={isCropModalOpen}
+          onClose={() => {
+            setIsCropModalOpen(false);
+            setTempImageSrc(null);
+          }}
+          imageSrc={tempImageSrc}
+          onCropComplete={handleCropComplete}
+        />
       )}
     </div>
   );

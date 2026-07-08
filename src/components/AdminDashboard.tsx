@@ -41,6 +41,7 @@ import {
 import { AlumniProfile, ActivityLog } from '../types';
 import { ENTRY_YEARS, getAvailableGrades, calculateGeneration, getEntryGrade, THAI_PROVINCES, resolveImageUrl } from '../data/mockAlumni';
 import { compressImage } from '../lib/imageUtils';
+import ImageCropModal from './ImageCropModal';
 
 // Helper to categorize alumni occupations into groups for the bar chart
 const getOccupationGroup = (occupation: string): string => {
@@ -98,6 +99,8 @@ export default function AdminDashboard({
   // Edit Alumnus state
   const [editingAlumnus, setEditingAlumnus] = useState<AlumniProfile | null>(null);
   const editFileInputRef = React.useRef<HTMLInputElement>(null);
+  const [tempEditImageSrc, setTempEditImageSrc] = useState<string | null>(null);
+  const [isEditCropModalOpen, setIsEditCropModalOpen] = useState(false);
 
   // Custom confirmation modal for delete
   const [deleteConfirmAlumnus, setDeleteConfirmAlumnus] = useState<AlumniProfile | null>(null);
@@ -848,10 +851,10 @@ export default function AdminDashboard({
                       ) : (
                         <button 
                           onClick={() => handleApproveAction(item.id, item.fullname)}
-                          className="inline-flex items-center gap-1.5 text-warning hover:bg-warning/10 border border-warning/30 px-2.5 py-1.5 rounded-full text-xs font-bold animate-pulse hover:animate-none cursor-pointer transition-standard whitespace-nowrap"
+                          className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white border border-red-600 px-2.5 py-1.5 rounded-full text-xs font-bold animate-pulse hover:animate-none cursor-pointer transition-standard whitespace-nowrap shadow-sm hover:shadow-md"
                           title="คลิกเพื่ออนุมัติทันที"
                         >
-                          <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                          <UserCheck className="w-3.5 h-3.5 shrink-0 text-white" />
                           <span className="whitespace-nowrap">รออนุมัติ</span>
                         </button>
                       )}
@@ -963,10 +966,10 @@ export default function AdminDashboard({
                   ) : (
                     <button 
                       onClick={() => handleApproveAction(item.id, item.fullname)}
-                      className="inline-flex items-center gap-1.5 text-warning bg-warning/5 hover:bg-warning/10 border border-warning/30 px-3 py-1.5 rounded-full text-xs font-extrabold animate-pulse hover:animate-none cursor-pointer transition-standard shadow-sm active:scale-95 whitespace-nowrap"
+                      className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white border border-red-600 px-3 py-1.5 rounded-full text-xs font-extrabold animate-pulse hover:animate-none cursor-pointer transition-standard shadow-sm active:scale-95 whitespace-nowrap"
                       title="คลิกเพื่ออนุมัติทันที"
                     >
-                      <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                      <UserCheck className="w-3.5 h-3.5 shrink-0 text-white" />
                       <span className="whitespace-nowrap">คลิกเพื่ออนุมัติ</span>
                     </button>
                   )}
@@ -1159,14 +1162,12 @@ export default function AdminDashboard({
                           const file = e.target.files?.[0];
                           if (file) {
                             const reader = new FileReader();
-                            reader.onload = async () => {
+                            reader.onload = () => {
                               const rawBase64 = reader.result as string;
-                              try {
-                                const compressed = await compressImage(rawBase64);
-                                setEditingAlumnus({ ...editingAlumnus, imageUrl: compressed });
-                              } catch (err) {
-                                console.error("Image compression error:", err);
-                                setEditingAlumnus({ ...editingAlumnus, imageUrl: rawBase64 });
+                              setTempEditImageSrc(rawBase64);
+                              setIsEditCropModalOpen(true);
+                              if (editFileInputRef.current) {
+                                editFileInputRef.current.value = '';
                               }
                             };
                             reader.readAsDataURL(file);
@@ -1415,6 +1416,21 @@ export default function AdminDashboard({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Admin Photo Crop Modal */}
+      {tempEditImageSrc && (
+        <ImageCropModal
+          isOpen={isEditCropModalOpen}
+          onClose={() => {
+            setIsEditCropModalOpen(false);
+            setTempEditImageSrc(null);
+          }}
+          imageSrc={tempEditImageSrc}
+          onCropComplete={(croppedBase64) => {
+            setEditingAlumnus((prev) => prev ? { ...prev, imageUrl: croppedBase64 } : null);
+          }}
+        />
       )}
     </div>
   );

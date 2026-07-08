@@ -5,12 +5,13 @@
 
 /**
  * Compresses a Base64 image using HTML5 Canvas to fit within Firestore's 1MB document limit.
- * Resizes the image to a maximum width/height of 350px and reduces JPEG quality to 0.7 by default.
+ * Resizes the image to a maximum width/height of 800px and reduces JPEG quality to 0.85 by default.
+ * Uses high-quality image smoothing to ensure the resized image is sharp and not blurry.
  */
-export function compressImage(base64Str: string, maxWidth = 350, maxHeight = 350, quality = 0.7): Promise<string> {
+export function compressImage(base64Str: string, maxWidth = 800, maxHeight = 800, quality = 0.85): Promise<string> {
   return new Promise((resolve) => {
-    // If it's already small or not a typical image format, resolve immediately
-    if (base64Str.length < 50000) {
+    // If it's already extremely small, resolve immediately
+    if (base64Str.length < 10000) {
       resolve(base64Str);
       return;
     }
@@ -40,8 +41,11 @@ export function compressImage(base64Str: string, maxWidth = 350, maxHeight = 350
 
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        // Enable high-quality image smoothing for crisp, clear downscaling
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
-        // Export to highly compressed JPEG format
+        // Export to high-quality compressed JPEG format
         resolve(canvas.toDataURL('image/jpeg', quality));
       } else {
         resolve(base64Str);

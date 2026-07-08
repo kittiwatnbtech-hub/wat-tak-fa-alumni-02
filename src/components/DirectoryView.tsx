@@ -16,7 +16,9 @@ import {
   X, 
   ChevronLeft, 
   ChevronRight,
-  Sparkles
+  Sparkles,
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 import { AlumniProfile } from '../types';
 import { getEntryGrade, resolveImageUrl } from '../data/mockAlumni';
@@ -388,7 +390,7 @@ export default function DirectoryView({ alumni }: DirectoryViewProps) {
 
                 {selectedAlumnus.dhammaEducation && (
                   <div className="flex items-start gap-3.5 text-sm">
-                    <span className="w-4 h-4 text-outline mt-0.5 shrink-0 font-bold text-[10px] flex items-center justify-center bg-primary/10 rounded text-primary border border-primary/20 select-none">ธรรม</span>
+                    <BookOpen className="w-4 h-4 text-outline mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs text-outline font-medium">วุฒิการศึกษาทางธรรมสูงสุด</p>
                       <p className="font-semibold text-on-surface mt-0.5">{selectedAlumnus.dhammaEducation}</p>
@@ -398,7 +400,7 @@ export default function DirectoryView({ alumni }: DirectoryViewProps) {
 
                 {selectedAlumnus.secularEducation && (
                   <div className="flex items-start gap-3.5 text-sm">
-                    <span className="w-4 h-4 text-outline mt-0.5 shrink-0 font-bold text-[10px] flex items-center justify-center bg-primary/10 rounded text-primary border border-primary/20 select-none">โลก</span>
+                    <GraduationCap className="w-4 h-4 text-outline mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs text-outline font-medium">วุฒิการศึกษาทางโลกสูงสุด</p>
                       <p className="font-semibold text-on-surface mt-0.5">{selectedAlumnus.secularEducation}</p>
