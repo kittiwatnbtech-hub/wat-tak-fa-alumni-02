@@ -1,18 +1,19 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
-import config from '../../firebase-applet-config.json';
 
-const app = initializeApp({
-  apiKey: config.apiKey,
-  authDomain: config.authDomain,
-  projectId: config.projectId,
-  storageBucket: config.storageBucket,
-  messagingSenderId: config.messagingSenderId,
-  appId: config.appId
-});
+const firebaseConfig = {
+  apiKey: "AIzaSyAB1S_a71exteCAlts3MvmT-gyV_WEMjY0",
+  authDomain: "rosy-dialect-488414-r1.firebaseapp.com",
+  projectId: "rosy-dialect-488414-r1",
+  storageBucket: "rosy-dialect-488414-r1.firebasestorage.app",
+  messagingSenderId: "1088378702415",
+  appId: "1:1088378702415:web:c19a52938f2ee58f40f83a"
+};
 
-// Initialize Firestore with the custom databaseId provided by the platform config
-export const db = getFirestore(app, config.firestoreDatabaseId || '(default)');
+const app = initializeApp(firebaseConfig);
+
+// Initialize Firestore
+export const db = getFirestore(app, 'ai-studio-wattakfaalumni-5ead791e-124a-49e7-ac62-8501af6e0ab6');
 
 export enum OperationType {
   CREATE = 'create',

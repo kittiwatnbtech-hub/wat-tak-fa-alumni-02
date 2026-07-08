@@ -23,8 +23,7 @@ import DirectoryView from './components/DirectoryView';
 import RegistrationView from './components/RegistrationView';
 import AdminDashboard from './components/AdminDashboard';
 import { AlumniProfile, ActivityLog } from './types';
-import { INITIAL_ALUMNI, INITIAL_LOGS } from './data/mockAlumni';
-import { db, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, getDoc, getDocs, handleFirestoreError, OperationType } from './lib/firebase';
+import { db, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, getDocs, handleFirestoreError, OperationType } from './lib/firebase';
 
 export default function App() {
   // Tab control state
@@ -32,118 +31,88 @@ export default function App() {
 
   // Load and preserve alumni database with localStorage cache as resilient fallback (in case Firestore daily quota is exceeded)
   const [alumni, setAlumni] = useState<AlumniProfile[]>(() => {
+    const activeDbId = 'ai-studio-wattakfaalumni-5ead791e-124a-49e7-ac62-8501af6e0ab6';
+    const cachedDbId = localStorage.getItem('cached_db_id');
+    if (cachedDbId !== activeDbId) {
+      localStorage.removeItem('local_alumni');
+      localStorage.removeItem('local_logs');
+      localStorage.setItem('cached_db_id', activeDbId);
+      return [];
+    }
+
     const cached = localStorage.getItem('local_alumni');
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Check if it is the old stale demo data
-          const isStale = parsed.some(item => item.id === '1' || item.fullname === 'สรวิชญ์ นามสมมติ');
+          // Check if it is the old stale demo data or mock data
+          const isStale = parsed.some(item => 
+            item.id === '1' || 
+            item.fullname === 'สรวิชญ์ นามสมมติ' || 
+            item.id.startsWith('real-') ||
+            item.fullname === 'สุวภัทร จันแดง'
+          );
           if (!isStale) {
             return parsed;
           }
-          console.log("Stale demo cache detected, resetting to restored real alumni data.");
+          console.log("Stale/mock cache detected, resetting to fetch real data from Firestore.");
           localStorage.removeItem('local_alumni');
         }
       } catch (e) {
         console.error("Failed to parse cached alumni", e);
       }
     }
-    return INITIAL_ALUMNI;
+    return [];
   });
 
   const [logs, setLogs] = useState<ActivityLog[]>(() => {
+    const activeDbId = 'ai-studio-wattakfaalumni-5ead791e-124a-49e7-ac62-8501af6e0ab6';
+    const cachedDbId = localStorage.getItem('cached_db_id');
+    if (cachedDbId !== activeDbId) {
+      return [];
+    }
+
     const cached = localStorage.getItem('local_logs');
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Check if it is the old stale logs
-          const isStale = parsed.some(log => log.id === 'log-1' && log.action.includes('วนิดา ปัญญาดี'));
+          const isStale = parsed.some(log => 
+            (log.id === 'log-1' && log.action.includes('วนิดา ปัญญาดี')) ||
+            log.action.includes('สุวภัทร จันแดง')
+          );
           if (!isStale) {
             return parsed;
           }
-          console.log("Stale logs cache detected, resetting to restored real logs.");
+          console.log("Stale/mock logs cache detected, resetting.");
           localStorage.removeItem('local_logs');
         }
       } catch (e) {
         console.error("Failed to parse cached logs", e);
       }
     }
-    return INITIAL_LOGS;
+    return [];
   });
 
   const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
 
   useEffect(() => {
-    // Attempt to seed initial data in Firestore if not already done, but handle errors gracefully (e.g. quota limit)
-    const initDb = async () => {
-      try {
-        let statusDoc;
-        try {
-          statusDoc = await getDoc(doc(db, 'system', 'status'));
-        } catch (error) {
-          const errStr = String(error);
-          if (errStr.includes('resource-exhausted') || errStr.includes('quota')) {
-            setIsQuotaExceeded(true);
-          }
-          console.warn("Could not get system status doc (likely due to quota limit). Fallback to local cache.");
-          return;
-        }
-
-        const statusData = statusDoc.exists() ? statusDoc.data() : null;
-        const isSeededV3 = statusData?.seeded_real_v3;
-
-        if (!isSeededV3) {
-          console.log("Seeding restored real INITIAL_ALUMNI and INITIAL_LOGS to Firestore...");
-          // Seed to Firestore to ensure real profiles exist on database
-          for (const item of INITIAL_ALUMNI) {
-            try {
-              await setDoc(doc(db, 'alumni', item.id), item);
-            } catch (error) {
-              console.error(`Error seeding alumni ${item.id}:`, error);
-            }
-          }
-          for (const log of INITIAL_LOGS) {
-            try {
-              await setDoc(doc(db, 'logs', log.id), log);
-            } catch (error) {
-              console.error(`Error seeding log ${log.id}:`, error);
-            }
-          }
-          try {
-            await setDoc(doc(db, 'system', 'status'), { 
-              seeded: true, 
-              logs_v2_updated: true, 
-              seeded_real_v3: true 
-            });
-          } catch (error) {
-            console.error("Error setting status doc:", error);
-          }
-        }
-      } catch (error) {
-        console.error("Error during db initialization/seeding:", error);
-      }
-    };
-
-    initDb();
-
     // 1. Subscribe to alumni in Firestore
     const unsubAlumni = onSnapshot(collection(db, 'alumni'), (snapshot) => {
-      const list: AlumniProfile[] = [];
+      const fbList: AlumniProfile[] = [];
       snapshot.forEach((doc) => {
-        list.push(doc.data() as AlumniProfile);
+        fbList.push(doc.data() as AlumniProfile);
       });
       
       // Sort by createdAt descending
-      list.sort((a, b) => {
+      fbList.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
       });
 
-      setAlumni(list);
-      localStorage.setItem('local_alumni', JSON.stringify(list));
+      setAlumni(fbList);
+      localStorage.setItem('local_alumni', JSON.stringify(fbList));
     }, (error) => {
       const errStr = String(error);
       if (errStr.includes('resource-exhausted') || errStr.includes('quota') || error.code === 'resource-exhausted') {
@@ -154,15 +123,14 @@ export default function App() {
 
     // 2. Subscribe to logs in Firestore
     const unsubLogs = onSnapshot(collection(db, 'logs'), (snapshot) => {
-      const list: ActivityLog[] = [];
+      const fbLogs: ActivityLog[] = [];
       snapshot.forEach((doc) => {
-        list.push(doc.data() as ActivityLog);
+        fbLogs.push(doc.data() as ActivityLog);
       });
-      // Sort by ID descending
-      list.sort((a, b) => b.id.localeCompare(a.id));
       
-      setLogs(list);
-      localStorage.setItem('local_logs', JSON.stringify(list));
+      fbLogs.sort((a, b) => b.id.localeCompare(a.id));
+      setLogs(fbLogs);
+      localStorage.setItem('local_logs', JSON.stringify(fbLogs));
     }, (error) => {
       const errStr = String(error);
       if (errStr.includes('resource-exhausted') || errStr.includes('quota') || error.code === 'resource-exhausted') {
@@ -361,7 +329,7 @@ export default function App() {
                   <span className="text-on-surface font-bold">สถานะการเชื่อมต่อ:</span> <span className="text-emerald-500 font-bold">เชื่อมต่อสำเร็จ ✅</span>
                 </div>
                 <div>
-                  <span className="text-on-surface font-bold">ฐานข้อมูลเป้าหมาย:</span> <span className="text-primary font-bold">ai-studio-wattakfaalumni-5ead791e-124a-49e7-ac62-8501af6e0ab6</span>
+                  <span className="text-on-surface font-bold">ฐานข้อมูลเป้าหมาย:</span> <span className="text-primary font-bold">rosy-dialect-488414-r1</span>
                 </div>
                 <div>
                   <span className="text-on-surface font-bold">Google Project ID:</span> <span className="text-on-surface">rosy-dialect-488414-r1</span>
