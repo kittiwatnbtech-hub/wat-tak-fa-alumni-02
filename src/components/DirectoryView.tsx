@@ -214,7 +214,7 @@ export default function DirectoryView({ alumni }: DirectoryViewProps) {
               >
                 <img 
                   className="profile-image w-full h-full object-cover transition-standard duration-500 bg-primary/5" 
-                  src={item.imageUrl && (item.imageUrl.startsWith('data:') || item.imageUrl.startsWith('blob:')) 
+                  src={item.imageUrl
                     ? item.imageUrl 
                     : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.fullname)}`
                   } 
@@ -343,7 +343,7 @@ export default function DirectoryView({ alumni }: DirectoryViewProps) {
               <div className="flex flex-col items-center text-center pb-2 border-b border-outline-variant/20">
                 <div className="w-44 h-44 rounded-2xl overflow-hidden bg-primary/5 flex items-center justify-center border-2 border-primary-container/40 shadow-sm mb-4">
                   <img 
-                    src={selectedAlumnus.imageUrl && (selectedAlumnus.imageUrl.startsWith('data:') || selectedAlumnus.imageUrl.startsWith('blob:'))
+                    src={selectedAlumnus.imageUrl
                       ? selectedAlumnus.imageUrl
                       : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedAlumnus.fullname)}`
                     } 

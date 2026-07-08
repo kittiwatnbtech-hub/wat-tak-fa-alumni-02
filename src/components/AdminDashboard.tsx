@@ -816,7 +816,7 @@ export default function AdminDashboard({
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary font-bold overflow-hidden shrink-0 border border-outline-variant/20">
                           <img 
-                            src={item.imageUrl && (item.imageUrl.startsWith('data:') || item.imageUrl.startsWith('blob:'))
+                            src={item.imageUrl
                               ? item.imageUrl
                               : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.fullname)}`
                             } 
@@ -913,7 +913,7 @@ export default function AdminDashboard({
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-primary font-bold overflow-hidden shrink-0 border border-outline-variant/20 shadow-sm">
                       <img 
-                        src={item.imageUrl && (item.imageUrl.startsWith('data:') || item.imageUrl.startsWith('blob:'))
+                        src={item.imageUrl
                           ? item.imageUrl
                           : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.fullname)}`
                         } 
