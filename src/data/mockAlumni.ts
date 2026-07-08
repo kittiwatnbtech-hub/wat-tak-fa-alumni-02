@@ -14,13 +14,17 @@ const gen8Image = new URL('../assets/images/alumni_gen8_cap_1783423157376.jpg', 
 
 export function resolveImageUrl(url: string | null | undefined): string {
   if (!url) return '';
-  if (url === '/src/assets/images/suwaphat_jandeng_1783423084680.jpg') return suwaphatImage;
-  if (url === '/src/assets/images/wiboon_hongyon_1783423125459.jpg') return wiboonImage;
-  if (url === '/src/assets/images/nattapong_piemsuk_1783423142039.jpg') return nattapongImage;
-  if (url === '/src/assets/images/alumni_gen4_glasses_1783423187761.jpg') return gen4Image;
-  if (url === '/src/assets/images/alumni_gen7_long_hair_1783423173525.jpg') return gen7Image;
-  if (url === '/src/assets/images/alumni_gen8_cap_1783423157376.jpg') return gen8Image;
-  return url;
+  const urlStr = String(url).trim();
+  if (urlStr.startsWith('data:') || urlStr.startsWith('blob:')) {
+    return urlStr;
+  }
+  if (urlStr.includes('suwaphat_jandeng_1783423084680')) return suwaphatImage;
+  if (urlStr.includes('wiboon_hongyon_1783423125459')) return wiboonImage;
+  if (urlStr.includes('nattapong_piemsuk_1783423142039')) return nattapongImage;
+  if (urlStr.includes('alumni_gen4_glasses_1783423187761')) return gen4Image;
+  if (urlStr.includes('alumni_gen7_long_hair_1783423173525')) return gen7Image;
+  if (urlStr.includes('alumni_gen8_cap_1783423157376')) return gen8Image;
+  return urlStr;
 }
 
 export const INITIAL_ALUMNI: AlumniProfile[] = [
@@ -37,7 +41,7 @@ export const INITIAL_ALUMNI: AlumniProfile[] = [
     status: 'approved',
     province: 'นครปฐม',
     email: 'suwaphat.j@email.com',
-    imageUrl: suwaphatImage,
+    imageUrl: '/src/assets/images/suwaphat_jandeng_1783423084680.jpg',
     createdAt: '2026-06-15T08:00:00.000Z'
   },
   {
@@ -53,7 +57,7 @@ export const INITIAL_ALUMNI: AlumniProfile[] = [
     status: 'approved',
     province: 'นครสวรรค์',
     email: 'wiboon.h@email.com',
-    imageUrl: wiboonImage,
+    imageUrl: '/src/assets/images/wiboon_hongyon_1783423125459.jpg',
     createdAt: '2026-06-16T09:30:00.000Z'
   },
   {
@@ -69,7 +73,7 @@ export const INITIAL_ALUMNI: AlumniProfile[] = [
     status: 'approved',
     province: 'พระนครศรีอยุธยา',
     email: 'nattapong.p@email.com',
-    imageUrl: nattapongImage,
+    imageUrl: '/src/assets/images/nattapong_piemsuk_1783423142039.jpg',
     createdAt: '2026-06-17T11:45:00.000Z'
   },
   {
@@ -85,7 +89,7 @@ export const INITIAL_ALUMNI: AlumniProfile[] = [
     status: 'approved',
     province: 'กรุงเทพมหานคร',
     email: 'thanin.r@email.com',
-    imageUrl: gen4Image,
+    imageUrl: '/src/assets/images/alumni_gen4_glasses_1783423187761.jpg',
     createdAt: '2026-06-18T14:20:00.000Z'
   },
   {
@@ -101,7 +105,7 @@ export const INITIAL_ALUMNI: AlumniProfile[] = [
     status: 'approved',
     province: 'เชียงใหม่',
     email: 'somjet.j@email.com',
-    imageUrl: gen7Image,
+    imageUrl: '/src/assets/images/alumni_gen7_long_hair_1783423173525.jpg',
     createdAt: '2026-06-19T10:15:00.000Z'
   },
   {
@@ -117,7 +121,7 @@ export const INITIAL_ALUMNI: AlumniProfile[] = [
     status: 'approved',
     province: 'นครสวรรค์',
     email: 'apichart.t@email.com',
-    imageUrl: gen8Image,
+    imageUrl: '/src/assets/images/alumni_gen8_cap_1783423157376.jpg',
     createdAt: '2026-06-20T16:40:00.000Z'
   }
 ];

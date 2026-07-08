@@ -142,10 +142,8 @@ export default function App() {
         return dateB - dateA;
       });
 
-      if (list.length > 0) {
-        setAlumni(list);
-        localStorage.setItem('local_alumni', JSON.stringify(list));
-      }
+      setAlumni(list);
+      localStorage.setItem('local_alumni', JSON.stringify(list));
     }, (error) => {
       const errStr = String(error);
       if (errStr.includes('resource-exhausted') || errStr.includes('quota') || error.code === 'resource-exhausted') {
@@ -163,10 +161,8 @@ export default function App() {
       // Sort by ID descending
       list.sort((a, b) => b.id.localeCompare(a.id));
       
-      if (list.length > 0) {
-        setLogs(list);
-        localStorage.setItem('local_logs', JSON.stringify(list));
-      }
+      setLogs(list);
+      localStorage.setItem('local_logs', JSON.stringify(list));
     }, (error) => {
       const errStr = String(error);
       if (errStr.includes('resource-exhausted') || errStr.includes('quota') || error.code === 'resource-exhausted') {
