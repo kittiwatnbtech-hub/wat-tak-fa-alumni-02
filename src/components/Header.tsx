@@ -6,8 +6,8 @@
 import { GraduationCap } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'directory' | 'registration' | 'admin';
-  setActiveTab: (tab: 'directory' | 'registration' | 'admin') => void;
+  activeTab: 'directory' | 'registration' | 'location' | 'admin';
+  setActiveTab: (tab: 'directory' | 'registration' | 'location' | 'admin') => void;
   pendingCount: number;
 }
 
@@ -59,20 +59,15 @@ export default function Header({ activeTab, setActiveTab, pendingCount }: Header
             ลงทะเบียนศิษย์เก่า
           </button>
           <button
-            onClick={() => setActiveTab('admin')}
+            onClick={() => setActiveTab('location')}
             className={`font-sans font-semibold py-1 text-lg relative transition-standard border-b-2 cursor-pointer ${
-              activeTab === 'admin'
+              activeTab === 'location'
                 ? 'text-primary border-primary'
                 : 'text-secondary border-transparent hover:text-primary hover:border-outline-variant'
             }`}
-            id="nav-admin"
+            id="nav-location"
           >
-            ระบบแอดมิน
-            {pendingCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-error text-on-error rounded-full text-[10px] font-bold flex items-center justify-center animate-pulse">
-                {pendingCount}
-              </span>
-            )}
+            ตำแหน่ง
           </button>
         </nav>
 

@@ -131,8 +131,12 @@ export default function AdminDashboard({
 
     const match = adminAccounts.find(acc => acc.u === username.trim() && acc.p === password);
     if (match) {
-      localStorage.setItem('admin_authorized', 'true');
-      localStorage.setItem('admin_name', match.name);
+      try {
+        localStorage.setItem('admin_authorized', 'true');
+        localStorage.setItem('admin_name', match.name);
+      } catch (e) {
+        console.warn("Failed to cache admin auth state in localStorage:", e);
+      }
       setIsAuthorized(true);
       setCurrentAdminName(match.name);
       setLoginError('');

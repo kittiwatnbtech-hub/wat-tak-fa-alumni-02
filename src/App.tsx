@@ -22,79 +22,85 @@ import Header from './components/Header';
 import DirectoryView from './components/DirectoryView';
 import RegistrationView from './components/RegistrationView';
 import AdminDashboard from './components/AdminDashboard';
+import LocationView from './components/LocationView';
 import { AlumniProfile, ActivityLog } from './types';
 import { db, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, getDocs, handleFirestoreError, OperationType } from './lib/firebase';
+import { getCacheItem, setCacheItem, deleteCacheItem, clearCache } from './lib/indexedDb';
 
 export default function App() {
   // Tab control state
-  const [activeTab, setActiveTab] = useState<'directory' | 'registration' | 'admin'>('directory');
+  const [activeTab, setActiveTab] = useState<'directory' | 'registration' | 'location' | 'admin'>('directory');
 
-  // Load and preserve alumni database with localStorage cache as resilient fallback (in case Firestore daily quota is exceeded)
-  const [alumni, setAlumni] = useState<AlumniProfile[]>(() => {
-    const activeDbId = 'ai-studio-wattakfaalumni-5ead791e-124a-49e7-ac62-8501af6e0ab6';
-    const cachedDbId = localStorage.getItem('cached_db_id');
-    if (cachedDbId !== activeDbId) {
-      localStorage.removeItem('local_alumni');
-      localStorage.removeItem('local_logs');
-      localStorage.setItem('cached_db_id', activeDbId);
-      return [];
-    }
+  // Alumni profiles state (starts as empty, loaded from IndexedDB cache asynchronously on mount and real-time Firestore)
+  const [alumni, setAlumni] = useState<AlumniProfile[]>([]);
 
-    const cached = localStorage.getItem('local_alumni');
-    if (cached) {
+  // Logs state (starts as empty, loaded from IndexedDB cache asynchronously on mount and real-time Firestore)
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
+
+  // Load cache from IndexedDB asynchronously on mount
+  useEffect(() => {
+    async function loadCache() {
       try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Check if it is the old stale demo data or mock data
-          const isStale = parsed.some(item => 
+        const activeDbId = 'ai-studio-wattakfaalumni-5ead791e-124a-49e7-ac62-8501af6e0ab6';
+        const cachedDbId = localStorage.getItem('cached_db_id');
+        
+        if (cachedDbId !== activeDbId) {
+          console.log("Database ID changed or first load, clearing IndexedDB cache...");
+          await clearCache();
+          try {
+            localStorage.setItem('cached_db_id', activeDbId);
+          } catch (e) {
+            console.warn("Failed to set cached_db_id in localStorage", e);
+          }
+          // Also cleanup old localStorage legacy keys just in case to free up space
+          localStorage.removeItem('local_alumni');
+          localStorage.removeItem('local_logs');
+          return;
+        }
+
+        // Load cached alumni profiles
+        const cachedAlumni = await getCacheItem<AlumniProfile[]>('local_alumni');
+        if (cachedAlumni && Array.isArray(cachedAlumni) && cachedAlumni.length > 0) {
+          const isStale = cachedAlumni.some(item => 
             item.id === '1' || 
             item.fullname === 'สรวิชญ์ นามสมมติ' || 
             item.id.startsWith('real-') ||
             item.fullname === 'สุวภัทร จันแดง'
           );
           if (!isStale) {
-            return parsed;
+            setAlumni(prev => prev.length === 0 ? cachedAlumni : prev);
+          } else {
+            console.log("Stale/mock cache detected in IndexedDB, clearing.");
+            await deleteCacheItem('local_alumni');
           }
-          console.log("Stale/mock cache detected, resetting to fetch real data from Firestore.");
-          localStorage.removeItem('local_alumni');
         }
-      } catch (e) {
-        console.error("Failed to parse cached alumni", e);
-      }
-    }
-    return [];
-  });
 
-  const [logs, setLogs] = useState<ActivityLog[]>(() => {
-    const activeDbId = 'ai-studio-wattakfaalumni-5ead791e-124a-49e7-ac62-8501af6e0ab6';
-    const cachedDbId = localStorage.getItem('cached_db_id');
-    if (cachedDbId !== activeDbId) {
-      return [];
-    }
-
-    const cached = localStorage.getItem('local_logs');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const isStale = parsed.some(log => 
+        // Load cached activity logs
+        const cachedLogs = await getCacheItem<ActivityLog[]>('local_logs');
+        if (cachedLogs && Array.isArray(cachedLogs) && cachedLogs.length > 0) {
+          const isStale = cachedLogs.some(log => 
             (log.id === 'log-1' && log.action.includes('วนิดา ปัญญาดี')) ||
             log.action.includes('สุวภัทร จันแดง')
           );
           if (!isStale) {
-            return parsed;
+            setLogs(prev => prev.length === 0 ? cachedLogs : prev);
+          } else {
+            console.log("Stale/mock logs detected in IndexedDB, clearing.");
+            await deleteCacheItem('local_logs');
           }
-          console.log("Stale/mock logs cache detected, resetting.");
-          localStorage.removeItem('local_logs');
         }
-      } catch (e) {
-        console.error("Failed to parse cached logs", e);
+
+        // Clean up legacy localStorage keys to ensure browser has full storage available
+        localStorage.removeItem('local_alumni');
+        localStorage.removeItem('local_logs');
+      } catch (err) {
+        console.error("Error loading cached database states:", err);
       }
     }
-    return [];
-  });
-
-  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
+    loadCache();
+  }, []);
 
   useEffect(() => {
     // 1. Subscribe to alumni in Firestore
@@ -112,7 +118,7 @@ export default function App() {
       });
 
       setAlumni(fbList);
-      localStorage.setItem('local_alumni', JSON.stringify(fbList));
+      setCacheItem('local_alumni', fbList);
     }, (error) => {
       const errStr = String(error);
       if (errStr.includes('resource-exhausted') || errStr.includes('quota') || error.code === 'resource-exhausted') {
@@ -130,7 +136,7 @@ export default function App() {
       
       fbLogs.sort((a, b) => b.id.localeCompare(a.id));
       setLogs(fbLogs);
-      localStorage.setItem('local_logs', JSON.stringify(fbLogs));
+      setCacheItem('local_logs', fbLogs);
     }, (error) => {
       const errStr = String(error);
       if (errStr.includes('resource-exhausted') || errStr.includes('quota') || error.code === 'resource-exhausted') {
@@ -164,7 +170,7 @@ export default function App() {
     // Update local state immediately for instant feedback
     const updatedLogs = [newLog, ...logs];
     setLogs(updatedLogs);
-    localStorage.setItem('local_logs', JSON.stringify(updatedLogs));
+    setCacheItem('local_logs', updatedLogs);
 
     try {
       await setDoc(doc(db, 'logs', logId), newLog);
@@ -186,7 +192,7 @@ export default function App() {
     // Update local state immediately so user sees it right away
     const updatedAlumni = [createdProfile, ...alumni];
     setAlumni(updatedAlumni);
-    localStorage.setItem('local_alumni', JSON.stringify(updatedAlumni));
+    setCacheItem('local_alumni', updatedAlumni);
 
     // Log action locally
     const logId = `log-${Date.now()}`;
@@ -200,7 +206,7 @@ export default function App() {
     };
     const updatedLogs = [newLog, ...logs];
     setLogs(updatedLogs);
-    localStorage.setItem('local_logs', JSON.stringify(updatedLogs));
+    setCacheItem('local_logs', updatedLogs);
     
     try {
       await setDoc(doc(db, 'alumni', id), createdProfile);
@@ -215,7 +221,7 @@ export default function App() {
     // Update local state immediately
     const updatedAlumni = alumni.map(item => item.id === id ? { ...item, status: 'approved' as const } : item);
     setAlumni(updatedAlumni);
-    localStorage.setItem('local_alumni', JSON.stringify(updatedAlumni));
+    setCacheItem('local_alumni', updatedAlumni);
 
     try {
       await updateDoc(doc(db, 'alumni', id), { status: 'approved' });
@@ -229,7 +235,7 @@ export default function App() {
     // Update local state immediately
     const updatedAlumni = alumni.filter(item => item.id !== id);
     setAlumni(updatedAlumni);
-    localStorage.setItem('local_alumni', JSON.stringify(updatedAlumni));
+    setCacheItem('local_alumni', updatedAlumni);
 
     try {
       await deleteDoc(doc(db, 'alumni', id));
@@ -243,7 +249,7 @@ export default function App() {
     // Update local state immediately
     const updatedAlumni = alumni.map(item => item.id === updated.id ? updated : item);
     setAlumni(updatedAlumni);
-    localStorage.setItem('local_alumni', JSON.stringify(updatedAlumni));
+    setCacheItem('local_alumni', updatedAlumni);
 
     try {
       await setDoc(doc(db, 'alumni', updated.id), updated);
@@ -256,7 +262,7 @@ export default function App() {
   const handleClearLogs = async () => {
     // Clear local state immediately
     setLogs([]);
-    localStorage.setItem('local_logs', JSON.stringify([]));
+    setCacheItem('local_logs', []);
 
     try {
       const logsCol = collection(db, 'logs');
@@ -361,6 +367,10 @@ export default function App() {
           <RegistrationView onRegister={handleRegisterAlumnus} />
         )}
 
+        {activeTab === 'location' && (
+          <LocationView alumni={alumni} />
+        )}
+
         {activeTab === 'admin' && (
           <AdminDashboard 
             alumni={alumni} 
@@ -411,19 +421,16 @@ export default function App() {
           </span>
         </button>
 
-        {/* 3. แอดมิน */}
+        {/* 3. ตำแหน่ง */}
         <button 
-          onClick={() => { setActiveTab('admin'); window.scrollTo(0,0); }}
+          onClick={() => { setActiveTab('location'); window.scrollTo(0,0); }}
           className={`flex flex-col items-center justify-center gap-1 w-20 h-14 relative transition-standard cursor-pointer select-none ${
-            activeTab === 'admin' ? 'text-primary' : 'text-on-surface-variant'
+            activeTab === 'location' ? 'text-primary' : 'text-on-surface-variant'
           }`}
-          id="btn-mobile-admin"
+          id="btn-mobile-location"
         >
-          <ShieldAlert className="w-5.5 h-5.5 stroke-[2]" />
-          <span className="text-[13px] font-bold">แอดมิน</span>
-          {pendingCount > 0 && (
-            <span className="absolute top-1 right-3.5 w-2 h-2 bg-error rounded-full animate-pulse" />
-          )}
+          <MapPin className="w-5.5 h-5.5 stroke-[2]" />
+          <span className="text-[13px] font-bold">ตำแหน่ง</span>
         </button>
       </nav>
 
