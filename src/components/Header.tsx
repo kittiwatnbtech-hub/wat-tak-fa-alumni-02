@@ -75,26 +75,37 @@ export default function Header({ activeTab, setActiveTab, pendingCount }: Header
         <div className="flex items-center gap-4" id="utility-group">
           
           {/* Avatar frame changes contextually */}
-          <div 
-            className="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden bg-primary/10 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary/20 transition-standard select-none"
-            onClick={() => setActiveTab(activeTab === 'admin' ? 'directory' : 'admin')}
-            title={activeTab === 'admin' ? "สลับไปหน้าทำเนียบ" : "สลับไปหน้าระบบแอดมิน"}
-            id="header-avatar"
-          >
-            <svg 
-              className={`w-full h-full p-1 transition-all duration-300 ${
-                activeTab === 'admin' ? 'text-primary' : 'text-on-surface-variant'
-              }`} 
-              viewBox="0 0 100 100" 
-              fill="none" 
-              xmlns="http://www.w3.org/2000/svg"
-              id="avatar-icon-svg"
+          <div className="relative">
+            <div 
+              className="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden bg-primary/10 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary/20 transition-standard select-none"
+              onClick={() => setActiveTab(activeTab === 'admin' ? 'directory' : 'admin')}
+              title={activeTab === 'admin' ? "สลับไปหน้าทำเนียบ" : "สลับไปหน้าระบบแอดมิน"}
+              id="header-avatar"
             >
-              {/* Head */}
-              <circle cx="50" cy="32" r="18" stroke="currentColor" strokeWidth="8" />
-              {/* Shoulders */}
-              <path d="M14 86C14 66 29 55 50 55C71 55 86 66 86 86" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
-            </svg>
+              <svg 
+                className={`w-full h-full p-1 transition-all duration-300 ${
+                  activeTab === 'admin' ? 'text-primary' : 'text-on-surface-variant'
+                }`} 
+                viewBox="0 0 100 100" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+                id="avatar-icon-svg"
+              >
+                {/* Head */}
+                <circle cx="50" cy="32" r="18" stroke="currentColor" strokeWidth="8" />
+                {/* Shoulders */}
+                <path d="M14 86C14 66 29 55 50 55C71 55 86 66 86 86" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+              </svg>
+            </div>
+            
+            {pendingCount > 0 && (
+              <span 
+                className="absolute -top-1 -right-1 flex h-5.5 min-w-5.5 px-1.5 items-center justify-center rounded-full bg-red-500 text-[10.5px] font-bold text-white shadow-md border-2 border-surface-container-lowest animate-pulse pointer-events-none"
+                id="admin-pending-badge"
+              >
+                {pendingCount}
+              </span>
+            )}
           </div>
         </div>
       </div>

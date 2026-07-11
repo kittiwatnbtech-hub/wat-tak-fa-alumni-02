@@ -75,6 +75,50 @@ export default function DirectoryView({ alumni }: DirectoryViewProps) {
 
   // Pagination calculation
   const totalPages = Math.ceil(filteredAlumni.length / itemsPerPage) || 1;
+  
+  // Generate smart pagination page numbers
+  const pageNumbers = useMemo(() => {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always include page 1
+      pages.push(1);
+      
+      let start = Math.max(2, currentPage - 1);
+      let end = Math.min(totalPages - 1, currentPage + 1);
+      
+      // Adjust start/end to ensure we show 3 middle pages if possible
+      if (currentPage <= 3) {
+        start = 2;
+        end = 4;
+      } else if (currentPage >= totalPages - 2) {
+        start = totalPages - 3;
+        end = totalPages - 1;
+      }
+      
+      if (start > 2) {
+        pages.push('...');
+      }
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (end < totalPages - 1) {
+        pages.push('...');
+      }
+      
+      // Always include last page
+      pages.push(totalPages);
+    }
+    return pages;
+  }, [totalPages, currentPage]);
+
   const paginatedAlumni = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredAlumni.slice(startIndex, startIndex + itemsPerPage);
@@ -299,19 +343,31 @@ export default function DirectoryView({ alumni }: DirectoryViewProps) {
             <ChevronLeft className="w-5 h-5" />
           </button>
           
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-            <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl font-semibold transition-standard cursor-pointer ${
-                currentPage === page 
-                  ? 'bg-primary text-on-primary shadow-sm' 
-                  : 'bg-surface-container-lowest border border-outline-variant/30 hover:bg-surface-container-high'
-              }`}
-            >
-              {page}
-            </button>
-          ))}
+          {pageNumbers.map((page, idx) => {
+            if (page === '...') {
+              return (
+                <span 
+                  key={`ellipsis-${idx}`} 
+                  className="w-8 h-10 flex items-end justify-center pb-2 text-outline font-medium select-none text-sm"
+                >
+                  ...
+                </span>
+              );
+            }
+            return (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(Number(page))}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl font-semibold transition-standard cursor-pointer ${
+                  currentPage === page 
+                    ? 'bg-primary text-on-primary shadow-sm' 
+                    : 'bg-surface-container-lowest border border-outline-variant/30 hover:bg-surface-container-high'
+                }`}
+              >
+                {page}
+              </button>
+            );
+          })}
 
           <button 
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
