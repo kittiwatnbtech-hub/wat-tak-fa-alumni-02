@@ -239,7 +239,7 @@ export default function AdminDashboard({
 
   const BAR_COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#6b7280'];
 
-  // Group provinces for donut chart representation (Top 5 + Others)
+  // Group provinces for donut chart representation showing actual provinces of registered members
   const provinceChartData = useMemo(() => {
     const counts: Record<string, number> = {};
     alumni.forEach(item => {
@@ -251,23 +251,40 @@ export default function AdminDashboard({
     const sortedProvinces = Object.entries(counts)
       .sort((a, b) => b[1] - a[1]);
 
-    if (sortedProvinces.length <= 6) {
-      return sortedProvinces.map(([name, count]) => ({ name, count }));
-    }
-
-    // Top 5 provinces
-    const top5 = sortedProvinces.slice(0, 5);
-    // Sum the rest as 'อื่นๆ'
-    const othersCount = sortedProvinces.slice(5).reduce((sum, [_, count]) => sum + count, 0);
-
-    const result = top5.map(([name, count]) => ({ name, count }));
-    if (othersCount > 0) {
-      result.push({ name: 'จังหวัดอื่นๆ', count: othersCount });
-    }
-    return result;
+    return sortedProvinces.map(([name, count]) => ({ name, count }));
   }, [alumni]);
 
   const DONUT_COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'];
+
+  // Group dhamma education levels for representation showing actual registered levels
+  const dhammaEducationChartData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    alumni.forEach(item => {
+      const level = item.dhammaEducation || 'ไม่มี / ไม่ระบุ';
+      counts[level] = (counts[level] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }));
+  }, [alumni]);
+
+  const DHAMMA_COLORS = ['#f43f5e', '#d97706', '#2563eb', '#16a34a', '#8b5cf6', '#ec4899', '#64748b'];
+
+  // Group secular education levels for representation showing actual registered levels
+  const secularEducationChartData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    alumni.forEach(item => {
+      const level = item.secularEducation || 'ไม่ระบุ';
+      counts[level] = (counts[level] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }));
+  }, [alumni]);
+
+  const SECULAR_COLORS = ['#0d9488', '#3b82f6', '#4f46e5', '#9333ea', '#f59e0b', '#84cc16', '#4b5563'];
 
   // Pagination bounds
   const totalPages = Math.ceil(filteredAlumni.length / itemsPerPage) || 1;
@@ -658,6 +675,160 @@ export default function AdminDashboard({
                       <span 
                         className="w-3 h-3 rounded-full shrink-0" 
                         style={{ backgroundColor: DONUT_COLORS[index % DONUT_COLORS.length] }} 
+                      />
+                      <span className="text-on-surface font-sans truncate" title={entry.name}>
+                        {entry.name}
+                      </span>
+                    </div>
+                    <span className="text-outline font-bold text-right ml-2 shrink-0">
+                      {entry.count} คน ({((entry.count / (alumni.length || 1)) * 100).toFixed(1)}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dhamma Education Distribution Donut Chart Card */}
+        <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-outline-variant/20 flex flex-col justify-between animate-fade-in" id="dhamma-education-chart-card">
+          <div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+              <div>
+                <h3 className="font-sans font-bold text-lg text-primary">สัดส่วนวุฒิการศึกษาทางธรรมสูงสุด</h3>
+                <p className="font-sans text-xs text-on-surface-variant mt-1">
+                  แผนภูมิโดนัทแสดงสัดส่วนวุฒิการศึกษาทางธรรมสูงสุดของกลุ่มศิษย์เก่าในระบบ
+                </p>
+              </div>
+              <div className="flex items-center gap-2 bg-primary/5 px-3 py-1.5 rounded-xl border border-primary/10 text-xs font-bold text-primary shrink-0">
+                <span>รวม {dhammaEducationChartData.length} กลุ่มวุฒิ</span>
+              </div>
+            </div>
+
+            {/* Recharts Donut Container */}
+            <div className="w-full h-80 flex flex-col sm:flex-row items-center justify-center gap-6" id="dhamma-chart-wrapper">
+              <div className="w-full sm:w-1/2 h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={dhammaEducationChartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={85}
+                      paddingAngle={3}
+                      dataKey="count"
+                    >
+                      {dhammaEducationChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={DHAMMA_COLORS[index % DHAMMA_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-surface-container-high p-3 rounded-xl shadow-lg border border-outline-variant/30 text-xs text-on-surface">
+                              <p className="font-bold mb-1">{data.name}</p>
+                              <p className="text-primary font-bold">จำนวน: {data.count} คน</p>
+                              <p className="text-[10px] text-outline mt-0.5">
+                                คิดเป็น {((data.count / (alumni.length || 1)) * 100).toFixed(1)}% ของทั้งหมด
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              
+              {/* Custom Legend */}
+              <div className="flex flex-col gap-2 w-full sm:w-1/2 justify-center max-h-64 overflow-y-auto pr-2">
+                {dhammaEducationChartData.map((entry, index) => (
+                  <div key={entry.name} className="flex items-center justify-between text-xs font-medium">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span 
+                        className="w-3 h-3 rounded-full shrink-0" 
+                        style={{ backgroundColor: DHAMMA_COLORS[index % DHAMMA_COLORS.length] }} 
+                      />
+                      <span className="text-on-surface font-sans truncate" title={entry.name}>
+                        {entry.name}
+                      </span>
+                    </div>
+                    <span className="text-outline font-bold text-right ml-2 shrink-0">
+                      {entry.count} คน ({((entry.count / (alumni.length || 1)) * 100).toFixed(1)}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Secular Education Distribution Donut Chart Card */}
+        <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-outline-variant/20 flex flex-col justify-between animate-fade-in" id="secular-education-chart-card">
+          <div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+              <div>
+                <h3 className="font-sans font-bold text-lg text-primary">สัดส่วนวุฒิการศึกษาทางโลกสูงสุด</h3>
+                <p className="font-sans text-xs text-on-surface-variant mt-1">
+                  แผนภูมิโดนัทแสดงสัดส่วนวุฒิการศึกษาทางโลกสูงสุดที่ศิษย์เก่าสำเร็จการศึกษา
+                </p>
+              </div>
+              <div className="flex items-center gap-2 bg-primary/5 px-3 py-1.5 rounded-xl border border-primary/10 text-xs font-bold text-primary shrink-0">
+                <span>รวม {secularEducationChartData.length} กลุ่มวุฒิ</span>
+              </div>
+            </div>
+
+            {/* Recharts Donut Container */}
+            <div className="w-full h-80 flex flex-col sm:flex-row items-center justify-center gap-6" id="secular-chart-wrapper">
+              <div className="w-full sm:w-1/2 h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={secularEducationChartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={85}
+                      paddingAngle={3}
+                      dataKey="count"
+                    >
+                      {secularEducationChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={SECULAR_COLORS[index % SECULAR_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-surface-container-high p-3 rounded-xl shadow-lg border border-outline-variant/30 text-xs text-on-surface">
+                              <p className="font-bold mb-1">{data.name}</p>
+                              <p className="text-primary font-bold">จำนวน: {data.count} คน</p>
+                              <p className="text-[10px] text-outline mt-0.5">
+                                คิดเป็น {((data.count / (alumni.length || 1)) * 100).toFixed(1)}% ของทั้งหมด
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              
+              {/* Custom Legend */}
+              <div className="flex flex-col gap-2 w-full sm:w-1/2 justify-center max-h-64 overflow-y-auto pr-2">
+                {secularEducationChartData.map((entry, index) => (
+                  <div key={entry.name} className="flex items-center justify-between text-xs font-medium">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span 
+                        className="w-3 h-3 rounded-full shrink-0" 
+                        style={{ backgroundColor: SECULAR_COLORS[index % SECULAR_COLORS.length] }} 
                       />
                       <span className="text-on-surface font-sans truncate" title={entry.name}>
                         {entry.name}
