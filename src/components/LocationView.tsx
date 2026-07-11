@@ -411,8 +411,8 @@ export default function LocationView({ alumni }: LocationViewProps) {
                       const isRegionMuted = selectedRegion !== 'All' && prov.region !== selectedRegion;
 
                       // Dynamic visual coloring - strictly utilizing beautiful sky blue #7ac4eb
-                      let fillClass = 'fill-[#eff3ff] dark:fill-[#eff3ff]/10';
-                      let strokeClass = 'stroke-[#dbe3ff] dark:stroke-slate-800/80 stroke-[0.5]';
+                      let fillClass = 'fill-[#fbf7ef] dark:fill-[#fbf7ef]/10';
+                      let strokeClass = 'stroke-[#6b7280] dark:stroke-[#6b7280]/80 stroke-[0.5]';
 
                       if (hasMembers) {
                         fillClass = 'fill-[#7ac4eb] hover:fill-[#5fb6e5] dark:fill-[#7ac4eb]/60 dark:hover:fill-[#7ac4eb]/80';
@@ -427,8 +427,8 @@ export default function LocationView({ alumni }: LocationViewProps) {
                           fillClass = 'fill-[#5fb6e5] dark:fill-[#7ac4eb]/80';
                           strokeClass = 'stroke-[#38bdf8] dark:stroke-[#7ac4eb] stroke-[1.2]';
                         } else {
-                          fillClass = 'fill-[#d0dcff] dark:fill-[#eff3ff]/20';
-                          strokeClass = 'stroke-[#a9beff] dark:stroke-slate-700 stroke-[0.8]';
+                          fillClass = 'fill-[#eedebb] dark:fill-[#fbf7ef]/20';
+                          strokeClass = 'stroke-[#4b5563] dark:stroke-slate-600 stroke-[0.8]';
                         }
                       }
 
