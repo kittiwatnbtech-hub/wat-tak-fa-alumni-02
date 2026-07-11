@@ -411,24 +411,24 @@ export default function LocationView({ alumni }: LocationViewProps) {
                       const isRegionMuted = selectedRegion !== 'All' && prov.region !== selectedRegion;
 
                       // Dynamic visual coloring - strictly utilizing beautiful sky blue #7ac4eb
-                      let fillClass = 'fill-slate-100/60 dark:fill-slate-900/30';
-                      let strokeClass = 'stroke-slate-200 dark:stroke-slate-800/80 stroke-[0.5]';
+                      let fillClass = 'fill-[#eff3ff] dark:fill-[#eff3ff]/10';
+                      let strokeClass = 'stroke-[#dbe3ff] dark:stroke-slate-800/80 stroke-[0.5]';
 
                       if (hasMembers) {
-                        fillClass = 'fill-[#7ac4eb] hover:fill-[#5fb6e5] dark:fill-[#7ac4eb]/40 dark:hover:fill-[#7ac4eb]/60';
-                        strokeClass = 'stroke-[#5eb2dc] dark:stroke-[#7ac4eb]/50 stroke-[0.8]';
+                        fillClass = 'fill-[#7ac4eb] hover:fill-[#5fb6e5] dark:fill-[#7ac4eb]/60 dark:hover:fill-[#7ac4eb]/80';
+                        strokeClass = 'stroke-[#5eb2dc] dark:stroke-[#7ac4eb]/70 stroke-[0.8]';
                       }
 
                       if (isSelected) {
-                        fillClass = 'fill-[#5fb6e5] dark:fill-[#7ac4eb]/70';
-                        strokeClass = 'stroke-[#38bdf8] dark:stroke-[#7ac4eb]/80 stroke-[1.5]';
+                        fillClass = 'fill-[#5fb6e5] dark:fill-[#7ac4eb]/90';
+                        strokeClass = 'stroke-[#38bdf8] dark:stroke-[#7ac4eb] stroke-[1.5]';
                       } else if (isHovered) {
                         if (hasMembers) {
-                          fillClass = 'fill-[#5fb6e5] dark:fill-[#7ac4eb]/60';
-                          strokeClass = 'stroke-[#38bdf8] dark:stroke-[#7ac4eb]/80 stroke-[1.2]';
+                          fillClass = 'fill-[#5fb6e5] dark:fill-[#7ac4eb]/80';
+                          strokeClass = 'stroke-[#38bdf8] dark:stroke-[#7ac4eb] stroke-[1.2]';
                         } else {
-                          fillClass = 'fill-slate-200/80 dark:fill-slate-800/60';
-                          strokeClass = 'stroke-slate-300 dark:stroke-slate-700 stroke-[0.8]';
+                          fillClass = 'fill-[#d0dcff] dark:fill-[#eff3ff]/20';
+                          strokeClass = 'stroke-[#a9beff] dark:stroke-slate-700 stroke-[0.8]';
                         }
                       }
 
